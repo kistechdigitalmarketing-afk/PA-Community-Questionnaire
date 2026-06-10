@@ -12,6 +12,8 @@ import {
   SubmissionType,
   UploadedFile,
 } from "../data/formData";
+import { db, isFirebaseConfigured } from "../lib/firebase";
+import { collection, addDoc } from "firebase/firestore";
 
 export default function Form() {
   const [step, setStep] = useState<number>(0);
@@ -333,7 +335,18 @@ export default function Form() {
     window.scrollTo(0, 0);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const saveLocally = (data: FormData) => {
+    try {
+      const existing = localStorage.getItem("pa_forms") || localStorage.getItem("pa_questionnaires");
+      const list = existing ? JSON.parse(existing) : [];
+      list.unshift(data);
+      localStorage.setItem("pa_forms", JSON.stringify(list));
+    } catch (err) {
+      console.error("Failed to save submission locally", err);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (step < 3) {
       return;
@@ -348,17 +361,26 @@ export default function Form() {
       timestamp: Date.now(),
     };
 
-    // Save to LocalStorage
-    try {
-      const existing = localStorage.getItem("pa_forms") || localStorage.getItem("pa_questionnaires");
-      const list = existing ? JSON.parse(existing) : [];
-      list.unshift(finalData);
-      localStorage.setItem("pa_forms", JSON.stringify(list));
-      
+    // Save to Firestore if configured, otherwise fallback to local storage
+    if (isFirebaseConfigured && db) {
+      try {
+        await addDoc(collection(db, "submissions"), {
+          ...finalData,
+          timestamp: Date.now() // Ensure fresh numeric timestamp for sort orders
+        });
+        setSubmittedId(submissionId);
+        setStep(4); // Success state
+      } catch (err) {
+        console.error("Failed to save submission to Firestore", err);
+        // Fallback to local storage in case of connection failure
+        saveLocally(finalData);
+        setSubmittedId(submissionId);
+        setStep(4);
+      }
+    } else {
+      saveLocally(finalData);
       setSubmittedId(submissionId);
       setStep(4); // Success state
-    } catch (err) {
-      console.error("Failed to save submission locally", err);
     }
   };
 
@@ -530,12 +552,7 @@ export default function Form() {
         {step === 4 && (
           <div className="success-screen" id="form-submission-success" style={{ animation: "modalFadeIn 0.35s ease" }}>
             <div className="success-icon" id="success-icon-symbol">✓</div>
-            <h3 className="success-title">Form Submitted Successfully!</h3>
-            <p className="success-desc" style={{ marginBottom: "2rem" }}>
-              Your form response has been saved locally with reference ID:{" "}
-              <strong style={{ color: "var(--pa-blue)" }}>{submittedId}</strong>. 
-              You can access this submission under the "Admin's Page" tab.
-            </p>
+            <h3 className="success-title" style={{ marginBottom: "2rem" }}>Form Submitted Successfully!</h3>
             <div className="success-buttons" style={{ justifyContent: "center" }}>
               <button
                 type="button"

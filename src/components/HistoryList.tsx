@@ -2,6 +2,18 @@
 
 import React, { useEffect, useState } from "react";
 import { FormData, PA_PROGRAMS, INITIAL_FORM_STATE } from "../data/formData";
+import { db, isFirebaseConfigured } from "../lib/firebase";
+import { 
+  collection, 
+  onSnapshot, 
+  doc, 
+  updateDoc, 
+  deleteDoc, 
+  query, 
+  orderBy, 
+  where, 
+  getDocs 
+} from "firebase/firestore";
 
 const convertToCSV = (items: FormData[]) => {
   const headers = [
@@ -630,9 +642,48 @@ export default function HistoryList({ onLogout }: HistoryListProps = {}) {
     }
   }, [selectedItem]);
 
-  const handleSaveAdminChanges = () => {
+  const handleSaveAdminChanges = async () => {
     if (!selectedItem) return;
 
+    if (isFirebaseConfigured && db) {
+      try {
+        let targetDocId = (selectedItem as any).docId;
+        if (!targetDocId) {
+          const q = query(collection(db, "submissions"), where("id", "==", selectedItem.id));
+          const snapshot = await getDocs(q);
+          if (!snapshot.empty) {
+            targetDocId = snapshot.docs[0].id;
+          }
+        }
+
+        if (targetDocId) {
+          const docRef = doc(db, "submissions", targetDocId);
+          await updateDoc(docRef, {
+            status: adminStatus,
+            adminFeedback: adminFeedback
+          });
+        } else {
+          throw new Error("Document ID not found in Firestore");
+        }
+
+        setSelectedItem({
+          ...selectedItem,
+          status: adminStatus,
+          adminFeedback: adminFeedback,
+        });
+        alert("Admin changes saved successfully to database!");
+      } catch (err) {
+        console.error("Failed to save admin changes to Firestore", err);
+        alert("Failed to save to database. Saving locally fallback...");
+        saveSubmissionsLocally();
+      }
+    } else {
+      saveSubmissionsLocally();
+    }
+  };
+
+  const saveSubmissionsLocally = () => {
+    if (!selectedItem) return;
     const updatedSubmissions = submissions.map((item) => {
       if (item.id === selectedItem.id) {
         return {
@@ -688,9 +739,35 @@ export default function HistoryList({ onLogout }: HistoryListProps = {}) {
     );
   };
 
-  // Load submissions from localStorage
+  // Load submissions from Firestore (real-time) or localStorage fallback
   useEffect(() => {
-    loadSubmissions();
+    if (isFirebaseConfigured && db) {
+      try {
+        const q = query(collection(db, "submissions"), orderBy("timestamp", "desc"));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+          const fetchedSubmissions: FormData[] = [];
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            fetchedSubmissions.push({
+              ...data,
+              docId: docSnap.id,
+              status: data.status || "pending",
+              adminFeedback: data.adminFeedback || ""
+            } as any);
+          });
+          setSubmissions(fetchedSubmissions);
+        }, (error) => {
+          console.error("Firestore onSnapshot error, falling back to local storage:", error);
+          loadSubmissions();
+        });
+        return () => unsubscribe();
+      } catch (err) {
+        console.error("Failed to setup Firestore listener", err);
+        loadSubmissions();
+      }
+    } else {
+      loadSubmissions();
+    }
   }, []);
 
   const loadSubmissions = () => {
@@ -716,16 +793,47 @@ export default function HistoryList({ onLogout }: HistoryListProps = {}) {
   };
 
   // Delete an individual item
-  const handleDelete = (id: string, e: React.MouseEvent) => {
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent opening modal
     if (!confirm("Are you sure you want to delete this submission?")) return;
 
-    const updated = submissions.filter((item) => item.id !== id);
-    localStorage.setItem("pa_forms", JSON.stringify(updated));
-    setSubmissions(updated);
+    const itemToDelete = submissions.find((item) => item.id === id);
+
+    if (isFirebaseConfigured && db && itemToDelete) {
+      try {
+        let targetDocId = (itemToDelete as any).docId;
+        if (!targetDocId) {
+          const q = query(collection(db, "submissions"), where("id", "==", id));
+          const snapshot = await getDocs(q);
+          if (!snapshot.empty) {
+            targetDocId = snapshot.docs[0].id;
+          }
+        }
+
+        if (targetDocId) {
+          await deleteDoc(doc(db, "submissions", targetDocId));
+          alert("Submission deleted from database successfully!");
+        } else {
+          throw new Error("Firestore document ID not found");
+        }
+      } catch (err) {
+        console.error("Failed to delete from Firestore", err);
+        alert("Failed to delete from database. Deleting locally fallback...");
+        deleteLocally(id);
+      }
+    } else {
+      deleteLocally(id);
+    }
+
     if (selectedItem?.id === id) {
       setSelectedItem(null);
     }
+  };
+
+  const deleteLocally = (id: string) => {
+    const updated = submissions.filter((item) => item.id !== id);
+    localStorage.setItem("pa_forms", JSON.stringify(updated));
+    setSubmissions(updated);
   };
 
   // Download a single item as JSON

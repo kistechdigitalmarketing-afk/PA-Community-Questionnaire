@@ -6,6 +6,8 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import HistoryList from "@/components/HistoryList";
 import AuthForm from "@/components/AuthForm";
+import { auth, isFirebaseConfigured } from "@/lib/firebase";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 
 export default function HistoryPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -13,22 +15,46 @@ export default function HistoryPage() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const loggedInUser = localStorage.getItem("pa_logged_in_user");
-      if (loggedInUser) {
-        setIsLoggedIn(true);
+      // 1. If Firebase is active, subscribe to Auth changes
+      if (isFirebaseConfigured && auth) {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+          if (user) {
+            setIsLoggedIn(true);
+          } else {
+            setIsLoggedIn(false);
+          }
+          setLoading(false);
+        });
+        return () => unsubscribe();
+      } else {
+        // 2. Local storage simulation fallback
+        const loggedInUser = localStorage.getItem("pa_logged_in_user");
+        if (loggedInUser) {
+          setIsLoggedIn(true);
+        }
+        setLoading(false);
       }
-      setLoading(false);
     }
   }, []);
 
   const handleLoginSuccess = (email: string) => {
-    localStorage.setItem("pa_logged_in_user", email);
+    if (!isFirebaseConfigured) {
+      localStorage.setItem("pa_logged_in_user", email);
+    }
     setIsLoggedIn(true);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("pa_logged_in_user");
-    setIsLoggedIn(false);
+  const handleLogout = async () => {
+    if (isFirebaseConfigured && auth) {
+      try {
+        await signOut(auth);
+      } catch (err) {
+        console.error("Firebase Sign Out Error:", err);
+      }
+    } else {
+      localStorage.removeItem("pa_logged_in_user");
+      setIsLoggedIn(false);
+    }
   };
 
   return (
