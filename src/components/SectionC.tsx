@@ -2,17 +2,69 @@
 
 import React, { useEffect } from "react";
 import {
-  QuestionnaireData,
+  FormData,
   PA_PROGRAMS,
   ACTIVITY_TYPES,
   RESOURCE_TYPES,
   RESOURCE_PROVIDERS,
   ActivitySubtype,
-} from "../data/questionnaireData";
+} from "../data/formData";
+
+const getReportingLabelAndHelper = (type: string) => {
+  switch (type) {
+    case "Facilitators":
+      return {
+        label: "Identify the Facilitators and Explain Their Role",
+        helper: "(Specify who the facilitators were and how they guided the session...)",
+      };
+    case "Funds":
+      return {
+        label: "Explain the Funds and How They Were Spent",
+        helper: "(Detail the amount of money spent and how it was allocated...)",
+      };
+    case "Equipment":
+      return {
+        label: "Explain the Equipment and How It Was Used",
+        helper: "(Explain what specific equipment was used and how...)",
+      };
+    case "Materials":
+    default:
+      return {
+        label: `Explain the ${type} and How They Were Used`,
+        helper: `(Explain what specific ${type.toLowerCase()} were used and how...)`,
+      };
+  }
+};
+
+const getPlanningLabelAndHelper = (type: string) => {
+  switch (type) {
+    case "Facilitators":
+      return {
+        label: "Identify the Facilitators Needed and Explain Their Role",
+        helper: "(Specify who the facilitators will be and how they will guide the session...)",
+      };
+    case "Funds":
+      return {
+        label: "Explain the Funds Needed and How They Will be Spent",
+        helper: "(Detail the amount of money needed and how it will be allocated...)",
+      };
+    case "Equipment":
+      return {
+        label: "Explain the Equipment Needed and How It Will be Used",
+        helper: "(Explain what specific equipment is needed and its planned utilization...)",
+      };
+    case "Materials":
+    default:
+      return {
+        label: `Explain the ${type} Needed and How They Will be Used`,
+        helper: `(Explain what specific ${type.toLowerCase()} are needed and their planned utilization...)`,
+      };
+  }
+};
 
 interface SectionCProps {
-  formData: QuestionnaireData;
-  onChange: (updates: Partial<QuestionnaireData>) => void;
+  formData: FormData;
+  onChange: (updates: Partial<FormData>) => void;
   errors: Record<string, string>;
 }
 
@@ -398,32 +450,10 @@ export default function SectionC({ formData, onChange, errors }: SectionCProps) 
 
   return (
     <div id="section-c-container">
-      <h3 className="section-subtitle" style={{ fontSize: "1.35rem", marginBottom: "1.5rem" }}>
-        Section C: Activity / Event Reporting or Planning
-      </h3>
 
       <div className="form-grid" style={{ marginBottom: "2rem" }}>
-        {/* Title of the Activity/Event */}
-        <div className={`form-group full-width ${errors.activityTitle ? "error" : ""}`}>
-          <label className="form-label" htmlFor="activityTitle">
-            Title of the Activity/Event <span className="required-dot">*</span>
-            <span style={{ textTransform: "none", fontWeight: "normal", color: "var(--text-muted)", fontSize: "0.8rem", display: "block", marginTop: "0.2rem" }}>
-              (e.g. Youth Leadership Conference)
-            </span>
-          </label>
-          <input
-            type="text"
-            id="activityTitle"
-            name="activityTitle"
-            value={formData.activityTitle}
-            onChange={handleTextChange}
-            className="form-input"
-          />
-          {errors.activityTitle && <span className="form-error-msg">{errors.activityTitle}</span>}
-        </div>
-
         {/* Activity Subtype Choice */}
-        <div className="form-group full-width" style={{ marginTop: "0.5rem" }}>
+        <div className="form-group full-width">
           <label className="form-label">
             Select Activity Action <span className="required-dot">*</span>
           </label>
@@ -448,6 +478,25 @@ export default function SectionC({ formData, onChange, errors }: SectionCProps) 
               📝 Reporting an Activity/Event (Already Happened)
             </button>
           </div>
+        </div>
+
+        {/* Title of the Activity/Event */}
+        <div className={`form-group full-width ${errors.activityTitle ? "error" : ""}`} style={{ marginTop: "0.5rem" }}>
+          <label className="form-label" htmlFor="activityTitle">
+            Title of the Activity/Event <span className="required-dot">*</span>
+            <span style={{ textTransform: "none", fontWeight: "normal", color: "var(--text-muted)", fontSize: "0.8rem", display: "block", marginTop: "0.2rem" }}>
+              (e.g. Youth Leadership Conference)
+            </span>
+          </label>
+          <input
+            type="text"
+            id="activityTitle"
+            name="activityTitle"
+            value={formData.activityTitle}
+            onChange={handleTextChange}
+            className="form-input"
+          />
+          {errors.activityTitle && <span className="form-error-msg">{errors.activityTitle}</span>}
         </div>
 
         {/* Program Selection */}
@@ -730,9 +779,9 @@ export default function SectionC({ formData, onChange, errors }: SectionCProps) 
                       {/* Explanation Textarea */}
                       <div className={`form-group ${errors[errorKey] ? "error" : ""}`} style={{ marginBottom: "1.25rem" }}>
                         <label className="form-label" htmlFor={`repResourceDesc-${type}`}>
-                          Explain the {type} and How it was Used <span className="required-dot">*</span>
+                          {getReportingLabelAndHelper(type).label} <span className="required-dot">*</span>
                           <span style={{ textTransform: "none", fontWeight: "normal", color: "var(--text-muted)", fontSize: "0.8rem", display: "block", marginTop: "0.2rem" }}>
-                            (Explain what specific {type.toLowerCase()} were used and how...)
+                            {getReportingLabelAndHelper(type).helper}
                           </span>
                         </label>
                         <textarea
@@ -904,9 +953,9 @@ export default function SectionC({ formData, onChange, errors }: SectionCProps) 
                       {/* Explanation Textarea */}
                       <div className={`form-group ${errors[errorKey] ? "error" : ""}`} style={{ marginBottom: "1.25rem" }}>
                         <label className="form-label" htmlFor={`planResourceDesc-${type}`}>
-                          Explain the {type} Needed and How it Will be Used <span className="required-dot">*</span>
+                          {getPlanningLabelAndHelper(type).label} <span className="required-dot">*</span>
                           <span style={{ textTransform: "none", fontWeight: "normal", color: "var(--text-muted)", fontSize: "0.8rem", display: "block", marginTop: "0.2rem" }}>
-                            (Explain what specific {type.toLowerCase()} are needed and their planned utilization...)
+                            {getPlanningLabelAndHelper(type).helper}
                           </span>
                         </label>
                         <textarea

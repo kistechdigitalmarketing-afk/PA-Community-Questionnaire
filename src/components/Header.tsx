@@ -23,7 +23,7 @@ export default function Header() {
             className={`nav-link ${pathname === "/" ? "active" : ""}`}
             id="nav-link-form"
           >
-            Submit Questionnaire
+            Submit Form
           </Link>
           <Link
             href="/history"

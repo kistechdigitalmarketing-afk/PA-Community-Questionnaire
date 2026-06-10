@@ -15,9 +15,9 @@ const robotoSlab = Roboto_Slab({
 });
 
 export const metadata: Metadata = {
-  title: "PA Community Questionnaire | Possibilities Africa",
+  title: "PA Community Form | Possibilities Africa",
   description:
-    "Official Community Activity & Meeting Questionnaire Portal for Possibilities Africa.",
+    "Official Community Activity & Meeting Form Portal for Possibilities Africa.",
   icons: {
     icon: "https://africa.possibilitiesafrica.org/wp-content/uploads/2024/09/cropped-favicon-32x32.png",
     shortcut: "https://africa.possibilitiesafrica.org/wp-content/uploads/2024/09/cropped-favicon-192x192.png",

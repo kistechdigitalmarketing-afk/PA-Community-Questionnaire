@@ -1,11 +1,11 @@
 "use client";
 
 import React from "react";
-import { QuestionnaireData, MeetingSubtype } from "../data/questionnaireData";
+import { FormData, MeetingSubtype } from "../data/formData";
 
 interface SectionDProps {
-  formData: QuestionnaireData;
-  onChange: (updates: Partial<QuestionnaireData>) => void;
+  formData: FormData;
+  onChange: (updates: Partial<FormData>) => void;
   errors: Record<string, string>;
 }
 
@@ -33,9 +33,6 @@ export default function SectionD({ formData, onChange, errors }: SectionDProps) 
 
   return (
     <div id="section-d-container">
-      <h3 className="section-subtitle" style={{ fontSize: "1.35rem", marginBottom: "1.5rem" }}>
-        Section D: Meeting Planning or Minutes
-      </h3>
       <p style={{ color: "var(--text-muted)", marginBottom: "1.5rem", fontSize: "0.9rem" }}>
         Program, PPP, and Activity Type details are not required for meeting submissions. Please fill in the details below.
       </p>

@@ -1,24 +1,29 @@
 "use client";
 
 import React from "react";
-import { QuestionnaireData, PA_PROGRAMS } from "../data/questionnaireData";
+import { FormData, PA_PROGRAMS } from "../data/formData";
 
 interface FormPreviewProps {
-  formData: QuestionnaireData;
+  formData: FormData;
+  isSubmitted?: boolean;
 }
 
-export default function FormPreview({ formData }: FormPreviewProps) {
+export default function FormPreview({ formData, isSubmitted = false }: FormPreviewProps) {
   const selectedProgramName =
     PA_PROGRAMS.find((p) => p.id === formData.programId)?.name || "";
 
   return (
     <div id="form-preview-container">
-      <h3 className="section-subtitle" style={{ fontSize: "1.35rem", marginBottom: "1.5rem" }}>
-        Review & Verify Details
-      </h3>
-      <p style={{ color: "var(--text-muted)", marginBottom: "2rem", fontSize: "0.95rem" }}>
-        Please review all the information below before clicking final Submit. If you need to make changes, you can click "Back".
-      </p>
+      {!isSubmitted && (
+        <>
+          <h3 className="section-subtitle" style={{ fontSize: "1.35rem", marginBottom: "1.5rem" }}>
+            Review & Verify Details
+          </h3>
+          <p style={{ color: "var(--text-muted)", marginBottom: "2rem", fontSize: "0.95rem" }}>
+            Please review all the information below before clicking final Submit. If you need to make changes, you can click "Edit Again".
+          </p>
+        </>
+      )}
 
       {/* SECTION A SUMMARY */}
       <div className="history-card" style={{ marginBottom: "2rem", borderColor: "var(--pa-yellow)" }}>
@@ -59,7 +64,7 @@ export default function FormPreview({ formData }: FormPreviewProps) {
               <span className="preview-val">{formData.leaderName}</span>
             </div>
             <div className="preview-item full-width" style={{ gridColumn: "span 2" }}>
-              <span className="preview-label">Contact Information</span>
+              <span className="preview-label">Phone Number</span>
               <span className="preview-val">{formData.contactInfo}</span>
             </div>
           </div>

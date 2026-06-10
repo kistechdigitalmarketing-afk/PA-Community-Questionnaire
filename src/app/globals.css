@@ -300,9 +300,8 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--pa-navy);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
+  display: block;
+  margin-bottom: 0.25rem;
 }
 
 .required-dot {
@@ -988,3 +987,9 @@ h1, h2, h3, h4, h5, h6 {
 .justify-between { justify-content: space-between; }
 .gap-2 { gap: 0.5rem; }
 .flex-column { flex-direction: column; }
+
+/* Spinner Animation */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+

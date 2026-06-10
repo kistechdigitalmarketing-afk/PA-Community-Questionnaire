@@ -7,15 +7,15 @@ import SectionC from "./SectionC";
 import SectionD from "./SectionD";
 import FormPreview from "./FormPreview";
 import {
-  QuestionnaireData,
-  INITIAL_QUESTIONNAIRE_STATE,
+  FormData,
+  INITIAL_FORM_STATE,
   SubmissionType,
   UploadedFile,
-} from "../data/questionnaireData";
+} from "../data/formData";
 
-export default function QuestionnaireForm() {
+export default function Form() {
   const [step, setStep] = useState<number>(0);
-  const [formData, setFormData] = useState<QuestionnaireData>(INITIAL_QUESTIONNAIRE_STATE);
+  const [formData, setFormData] = useState<FormData>(INITIAL_FORM_STATE);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submittedId, setSubmittedId] = useState<string>("");
 
@@ -60,7 +60,7 @@ export default function QuestionnaireForm() {
     }));
   };
 
-  const updateFormData = (updates: Partial<QuestionnaireData>) => {
+  const updateFormData = (updates: Partial<FormData>) => {
     setFormData((prev) => ({ ...prev, ...updates }));
     
     // Clear errors when user types/changes fields
@@ -215,17 +215,13 @@ export default function QuestionnaireForm() {
         newErrors.shalomLeadersCount = "Leaders count must be 0 or more";
       }
       if (!formData.leaderName.trim()) newErrors.leaderName = "Leader name is required";
-      if (!formData.contactInfo.trim()) newErrors.contactInfo = "Contact information is required";
+      if (!formData.contactInfo.trim()) newErrors.contactInfo = "Phone number is required";
     }
 
     if (currentStep === 2) {
       if (!formData.submissionType) {
         newErrors.submissionType = "Please select a submission type to proceed";
-      }
-    }
-
-    if (currentStep === 3) {
-      if (formData.submissionType === "activity_event") {
+      } else if (formData.submissionType === "activity_event") {
         if (!formData.activityTitle.trim()) newErrors.activityTitle = "Activity title is required";
         if (!formData.activitySubtype) newErrors.activitySubtype = "Please select an activity action";
         if (!formData.programId) newErrors.programId = "Please select a program";
@@ -297,9 +293,7 @@ export default function QuestionnaireForm() {
             });
           }
         }
-      }
-
-      if (formData.submissionType === "meeting") {
+      } else if (formData.submissionType === "meeting") {
         const meet = formData.meetingDetails;
         if (!meet.meetingSubtype) {
           newErrors["meetingDetails.meetingSubtype"] = "Please select a meeting action";
@@ -329,23 +323,26 @@ export default function QuestionnaireForm() {
 
   const handleNext = () => {
     if (validateStep(step)) {
-      setStep((prev) => prev + 1);
+      setStep(step + 1);
       window.scrollTo(0, 0);
     }
   };
 
   const handleBack = () => {
-    setStep((prev) => prev - 1);
+    setStep(step - 1);
     window.scrollTo(0, 0);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateStep(3)) return;
+    if (step < 3) {
+      return;
+    }
+    if (!validateStep(2)) return;
 
     // Generate unique ID and metadata
     const submissionId = "PAQ-" + Math.random().toString(36).substring(2, 9).toUpperCase();
-    const finalData: QuestionnaireData = {
+    const finalData: FormData = {
       ...formData,
       id: submissionId,
       timestamp: Date.now(),
@@ -353,33 +350,32 @@ export default function QuestionnaireForm() {
 
     // Save to LocalStorage
     try {
-      const existing = localStorage.getItem("pa_questionnaires");
+      const existing = localStorage.getItem("pa_forms") || localStorage.getItem("pa_questionnaires");
       const list = existing ? JSON.parse(existing) : [];
       list.unshift(finalData);
-      localStorage.setItem("pa_questionnaires", JSON.stringify(list));
+      localStorage.setItem("pa_forms", JSON.stringify(list));
       
       setSubmittedId(submissionId);
-      setStep(5); // Success state
+      setStep(4); // Success state
     } catch (err) {
       console.error("Failed to save submission locally", err);
     }
   };
 
   const handleReset = () => {
-    setFormData(INITIAL_QUESTIONNAIRE_STATE);
+    setFormData(INITIAL_FORM_STATE);
     setErrors({});
     setStep(0);
   };
 
   // Stepper UI helper
   const renderStepper = () => {
-    if (step === 0 || step > 4) return null; // Hide stepper on instructions or success screen
+    if (step === 0 || step > 3) return null; // Hide stepper on instructions or success screen
     
     const stepsInfo = [
       { num: 1, label: "Community Info" },
-      { num: 2, label: "Submission Type" },
-      { num: 3, label: "Detailed Fields" },
-      { num: 4, label: "Preview & Submit" },
+      { num: 2, label: "Submission Details" },
+      { num: 3, label: "Preview & Submit" },
     ];
 
     return (
@@ -401,10 +397,10 @@ export default function QuestionnaireForm() {
   };
 
   return (
-    <div className="wizard-card" id="questionnaire-form-wizard">
+    <div className="wizard-card" id="form-wizard">
       <div className="wizard-header">
         <h2 className="wizard-title" id="form-card-title">
-          Community Activity & Meeting Questionnaire
+          Community Activity & Meeting Form
         </h2>
         <p className="wizard-subtitle" id="form-card-subtitle">
           Possibilities Africa Internal Community Reporting and Planning System
@@ -415,12 +411,12 @@ export default function QuestionnaireForm() {
 
       {/* STEP 0: INSTRUCTIONS PAGE */}
         {step === 0 && (
-          <div className="instructions-page" id="questionnaire-instructions" style={{ animation: "modalFadeIn 0.35s ease" }}>
+          <div className="instructions-page" id="form-instructions" style={{ animation: "modalFadeIn 0.35s ease" }}>
             <h3 className="section-subtitle" style={{ fontSize: "1.25rem", marginBottom: "1rem", color: "var(--pa-navy)" }}>
-              Welcome & Instructions
+              Submission Instructions
             </h3>
             <p style={{ color: "var(--text-muted)", marginBottom: "1.5rem", fontSize: "0.95rem", lineHeight: "1.5" }}>
-              This reporting portal allows Shalom leaders to submit activity updates, project plans, and meeting minutes to Possibilities Africa. Please review the instructions below before you begin filling out the questionnaire:
+              This reporting portal allows Shalom leaders to submit activity updates, project plans, and meeting minutes to Possibilities Africa. Please review the instructions below before you begin filling out the form:
             </p>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "2rem" }}>
@@ -428,7 +424,7 @@ export default function QuestionnaireForm() {
                 <div style={{ fontSize: "1.5rem", color: "var(--pa-blue)", lineHeight: "1", fontWeight: "bold" }}>①</div>
                 <div>
                   <h4 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: "0.2rem" }}>Community Information</h4>
-                  <p style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>Provide details about your local community name, catchment area, CMC, and the reporting leader's contact info.</p>
+                  <p style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>Provide details about your local community name, catchment area, CMC, and the reporting leader's phone number.</p>
                 </div>
               </div>
 
@@ -479,16 +475,16 @@ export default function QuestionnaireForm() {
                 className="btn btn-primary"
                 onClick={() => setStep(1)}
                 style={{ padding: "0.75rem 2rem", fontSize: "1rem", display: "inline-flex", alignItems: "center", gap: "0.5rem" }}
-                id="btn-start-questionnaire"
+                id="btn-start-form"
               >
-                Start Questionnaire ➔
+                Start Submission ➔
               </button>
             </div>
           </div>
         )}
 
       {step >= 1 && (
-        <form onSubmit={handleSubmit} noValidate id="questionnaire-wizard-form">
+        <form onSubmit={handleSubmit} noValidate id="form-wizard-flow">
         {/* STEP 1: SECTION A */}
         {step === 1 && (
           <SectionA
@@ -498,42 +494,45 @@ export default function QuestionnaireForm() {
           />
         )}
 
-        {/* STEP 2: SECTION B */}
+        {/* STEP 2: COMBINED SUBMISSION DETAILS */}
         {step === 2 && (
-          <SectionB
-            submissionType={formData.submissionType}
-            onChange={(type) => updateFormData({ submissionType: type })}
-            errors={errors}
-          />
+          <div style={{ display: "flex", flexDirection: "column", gap: "2.5rem", animation: "modalFadeIn 0.3s ease" }}>
+            <SectionB
+              submissionType={formData.submissionType}
+              onChange={(type) => updateFormData({ submissionType: type })}
+              errors={errors}
+            />
+            {formData.submissionType === "activity_event" && (
+              <div style={{ animation: "modalFadeIn 0.3s ease", borderTop: "1px solid var(--border-color)", paddingTop: "2rem" }}>
+                <SectionC
+                  formData={formData}
+                  onChange={updateFormData}
+                  errors={errors}
+                />
+              </div>
+            )}
+            {formData.submissionType === "meeting" && (
+              <div style={{ animation: "modalFadeIn 0.3s ease", borderTop: "1px solid var(--border-color)", paddingTop: "2rem" }}>
+                <SectionD
+                  formData={formData}
+                  onChange={updateFormData}
+                  errors={errors}
+                />
+              </div>
+            )}
+          </div>
         )}
 
-        {/* STEP 3: SECTION C OR SECTION D */}
-        {step === 3 && formData.submissionType === "activity_event" && (
-          <SectionC
-            formData={formData}
-            onChange={updateFormData}
-            errors={errors}
-          />
-        )}
+        {/* STEP 3: PREVIEW */}
+        {step === 3 && <FormPreview formData={formData} />}
 
-        {step === 3 && formData.submissionType === "meeting" && (
-          <SectionD
-            formData={formData}
-            onChange={updateFormData}
-            errors={errors}
-          />
-        )}
-
-        {/* STEP 4: PREVIEW */}
-        {step === 4 && <FormPreview formData={formData} />}
-
-        {/* STEP 5: SUCCESS SCREEN */}
-        {step === 5 && (
-          <div className="success-screen" id="form-submission-success">
+        {/* STEP 4: SUCCESS SCREEN */}
+        {step === 4 && (
+          <div className="success-screen" id="form-submission-success" style={{ animation: "modalFadeIn 0.35s ease" }}>
             <div className="success-icon" id="success-icon-symbol">✓</div>
-            <h3 className="success-title">Questionnaire Submitted!</h3>
-            <p className="success-desc">
-              Your questionnaire response has been saved locally with reference ID:{" "}
+            <h3 className="success-title">Form Submitted Successfully!</h3>
+            <p className="success-desc" style={{ marginBottom: "2rem" }}>
+              Your form response has been saved locally with reference ID:{" "}
               <strong style={{ color: "var(--pa-blue)" }}>{submittedId}</strong>. 
               You can access this submission under the "Admin's Page" tab.
             </p>
@@ -543,6 +542,7 @@ export default function QuestionnaireForm() {
                 className="btn btn-primary"
                 onClick={handleReset}
                 id="btn-success-new"
+                style={{ padding: "0.75rem 2rem" }}
               >
                 Submit New Response
               </button>
@@ -551,9 +551,9 @@ export default function QuestionnaireForm() {
         )}
 
         {/* FOOTER BUTTONS FOR NAVIGATING THE STEPS */}
-        {step >= 1 && step <= 4 && (
+        {step >= 1 && step <= 3 && (
           <>
-            {step === 3 && formData.documents && formData.documents.length > 0 && (
+            {step === 2 && formData.submissionType && formData.documents && formData.documents.length > 0 && (
               <div className="uploaded-files-list" style={{ marginTop: "1.5rem", width: "100%" }}>
                 <span className="preview-label" style={{ fontSize: "0.75rem", display: "block", marginBottom: "0.5rem" }}>
                   Uploaded Documents:
@@ -601,19 +601,20 @@ export default function QuestionnaireForm() {
             <div className="btn-group" id="form-nav-buttons">
               {step > 1 ? (
                 <button
+                  key={step === 3 ? "btn-edit-again" : "btn-back"}
                   type="button"
                   className="btn btn-secondary"
                   onClick={handleBack}
                   id="btn-nav-back"
                 >
-                  ← Back
+                  {step === 3 ? "Edit Again" : "← Back"}
                 </button>
               ) : (
                 <div /> // Placeholder to push Next button to right
               )}
 
               <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
-                {step === 3 && (
+                {step === 2 && formData.submissionType && (
                   <>
                     <label
                       htmlFor="document-upload"
@@ -641,8 +642,9 @@ export default function QuestionnaireForm() {
                   </>
                 )}
 
-                {step < 4 ? (
+                {step < 3 ? (
                   <button
+                    key="btn-next"
                     type="button"
                     className="btn btn-primary"
                     onClick={handleNext}
@@ -652,11 +654,12 @@ export default function QuestionnaireForm() {
                   </button>
                 ) : (
                   <button
+                    key="btn-submit"
                     type="submit"
                     className="btn btn-success"
                     id="btn-nav-submit"
                   >
-                    ✓ Submit Questionnaire
+                    Submit
                   </button>
                 )}
               </div>

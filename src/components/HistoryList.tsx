@@ -1,12 +1,616 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { QuestionnaireData, PA_PROGRAMS, INITIAL_QUESTIONNAIRE_STATE } from "../data/questionnaireData";
+import { FormData, PA_PROGRAMS, INITIAL_FORM_STATE } from "../data/formData";
 
-export default function HistoryList() {
-  const [submissions, setSubmissions] = useState<QuestionnaireData[]>([]);
+const convertToCSV = (items: FormData[]) => {
+  const headers = [
+    "Reference ID",
+    "Date Submitted",
+    "Status",
+    "Country",
+    "Catchment Area",
+    "Community Name",
+    "CMC",
+    "Shalom Leaders Count",
+    "Leader Name",
+    "Phone Number",
+    "Submission Type",
+    "Subtype",
+    "Title",
+    "Program",
+    "PPP",
+    "Activity Types",
+    "What/Why/How",
+    "Outcomes/Agenda",
+    "Next Steps/Takeaways",
+    "Resources Utilized/Needed"
+  ];
+
+  const rows = items.map((item) => {
+    const title = item.submissionType === "activity_event"
+      ? item.activityTitle
+      : item.meetingDetails.meetingTitle;
+
+    const programName = item.submissionType === "activity_event"
+      ? PA_PROGRAMS.find((p) => p.id === item.programId)?.name || ""
+      : "";
+
+    const dateStr = item.timestamp ? new Date(item.timestamp).toLocaleString() : "";
+    const subtype = item.submissionType === "activity_event"
+      ? item.activitySubtype
+      : item.meetingDetails.meetingSubtype;
+
+    let whatWhyHow = "";
+    let outcomes = "";
+    let nextSteps = "";
+    let resources = "";
+
+    if (item.submissionType === "activity_event") {
+      if (item.activitySubtype === "reporting") {
+        whatWhyHow = item.reportingDetails.whatWhyHow;
+        outcomes = item.reportingDetails.outcomes;
+        nextSteps = item.reportingDetails.nextSteps;
+        resources = item.reportingDetails.resourcesUtilized.types.join(", ");
+      } else if (item.activitySubtype === "planning") {
+        whatWhyHow = item.planningDetails.whatWhyHow;
+        outcomes = item.planningDetails.expectedOutcomes;
+        resources = item.planningDetails.resourcesNeeded.types.join(", ");
+      }
+    } else {
+      if (item.meetingDetails.meetingSubtype === "planning") {
+        outcomes = item.meetingDetails.planningAgenda;
+      } else if (item.meetingDetails.meetingSubtype === "minutes") {
+        whatWhyHow = item.meetingDetails.minutesAgenda;
+        outcomes = item.meetingDetails.keyTakeaways;
+        nextSteps = item.meetingDetails.followUpActions;
+      }
+    }
+
+    return [
+      item.id || "",
+      dateStr,
+      item.status || "pending",
+      item.countryName || "",
+      item.catchmentArea || "",
+      item.communityName || "",
+      item.cmc || "",
+      item.shalomLeadersCount || "",
+      item.leaderName || "",
+      item.contactInfo || "",
+      item.submissionType || "",
+      subtype || "",
+      title || "",
+      programName,
+      item.pppSelected || "",
+      item.activityTypesSelected?.join(", ") || "",
+      whatWhyHow,
+      outcomes,
+      nextSteps,
+      resources
+    ];
+  });
+
+  const csvContent = [
+    headers.join(","),
+    ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))
+  ].join("\r\n");
+
+  return csvContent;
+};
+
+const generatePrintHTML = (item: FormData) => {
+  const title = item.submissionType === "activity_event"
+    ? item.activityTitle
+    : item.meetingDetails.meetingTitle;
+
+  const programName = item.submissionType === "activity_event"
+    ? PA_PROGRAMS.find((p) => p.id === item.programId)?.name || ""
+    : "";
+
+  const dateStr = item.timestamp ? new Date(item.timestamp).toLocaleString() : "Unknown";
+
+  const subtypeLabel = item.submissionType === "activity_event"
+    ? (item.activitySubtype === "planning" ? "Activity (Planning)" : "Activity (Reporting)")
+    : (item.meetingDetails.meetingSubtype === "planning" ? "Meeting (Planning)" : "Meeting (Minutes)");
+
+  let sectionDetailsHTML = "";
+  if (item.submissionType === "activity_event") {
+    let resourcesHTML = "";
+    if (item.activitySubtype === "reporting") {
+      const rowsHTML = item.reportingDetails.resourcesUtilized.types.map((type) => {
+        const desc = item.reportingDetails.resourcesUtilized.descriptions?.[type] || "";
+        const providers = item.reportingDetails.resourcesUtilized.providersMap?.[type] || [];
+        const specifyOther = item.reportingDetails.resourcesUtilized.providerSpecifyOthers?.[type] || "";
+        const provText = providers.map(p => {
+          if (p === "pa") return "Possibilities Africa";
+          if (p === "self") return "Self Raised";
+          if (p === "other") return "Other (" + specifyOther + ")";
+          return p;
+        }).join(", ");
+        return "<tr><td><strong>" + type + "</strong></td><td>" + desc + "</td><td>" + (provText || "None selected") + "</td></tr>";
+      }).join("");
+
+      resourcesHTML = `
+        <div class="detail-section">
+          <div class="section-title">Resources Utilized</div>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Explanation</th>
+                <th>Provider(s)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHTML}
+            </tbody>
+          </table>
+        </div>
+      `;
+    } else {
+      const rowsHTML = item.planningDetails.resourcesNeeded.types.map((type) => {
+        const desc = item.planningDetails.resourcesNeeded.descriptions?.[type] || "";
+        const methods = item.planningDetails.resourcesNeeded.acquisitionMethodsMap?.[type] || [];
+        const specifyOther = item.planningDetails.resourcesNeeded.acquisitionSpecifyOthers?.[type] || "";
+        const methodText = methods.map(m => {
+          if (m === "pa") return "Possibilities Africa";
+          if (m === "self") return "Self Raised";
+          if (m === "other") return "Other (" + specifyOther + ")";
+          return m;
+        }).join(", ");
+        return "<tr><td><strong>" + type + "</strong></td><td>" + desc + "</td><td>" + (methodText || "None selected") + "</td></tr>";
+      }).join("");
+
+      resourcesHTML = `
+        <div class="detail-section">
+          <div class="section-title">Resources Needed</div>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Explanation</th>
+                <th>Acquisition Method(s)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHTML}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    sectionDetailsHTML = `
+      <div class="card">
+        <div class="card-header" style="background-color: #0f172a; color: white;">Sections B & C: Activity / Event Details</div>
+        <div class="card-body">
+          <div class="grid-2">
+            <div><strong>Activity Title:</strong> ${item.activityTitle || "N/A"}</div>
+            <div><strong>Subtype:</strong> ${subtypeLabel}</div>
+            <div><strong>Program Name:</strong> ${programName || "N/A"}</div>
+            <div><strong>Program Pillar & Project (PPP):</strong> ${item.pppSelected || "N/A"}</div>
+            <div style="grid-column: span 2;"><strong>Activity Type(s):</strong> ${item.activityTypesSelected?.join(", ") || "None"}</div>
+          </div>
+          ${item.activitySubtype === "reporting" ? `
+            <div class="detail-section">
+              <div class="section-title">What was done, why, and how</div>
+              <div class="textarea-val">${item.reportingDetails.whatWhyHow}</div>
+            </div>
+            <div class="detail-section">
+              <div class="section-title">Outcomes (What was achieved)</div>
+              <div class="textarea-val">${item.reportingDetails.outcomes}</div>
+            </div>
+            <div class="detail-section">
+              <div class="section-title">Present Participants</div>
+              <div>${item.reportingDetails.participants?.join(", ") || "None listed"}</div>
+            </div>
+            <div class="detail-section">
+              <div class="section-title">Next Steps & Follow-up Actions</div>
+              <div class="textarea-val">${item.reportingDetails.nextSteps}</div>
+            </div>
+            ${resourcesHTML}
+          ` : `
+            <div class="detail-section">
+              <div class="section-title">What is planned, why, and how</div>
+              <div class="textarea-val">${item.planningDetails.whatWhyHow}</div>
+            </div>
+            <div class="detail-section">
+              <div class="section-title">Expected Outcomes</div>
+              <div class="textarea-val">${item.planningDetails.expectedOutcomes}</div>
+            </div>
+            ${resourcesHTML}
+          `}
+        </div>
+      </div>
+    `;
+  } else {
+    sectionDetailsHTML = `
+      <div class="card">
+        <div class="card-header" style="background-color: #0f172a; color: white;">Sections B & D: Meeting Details</div>
+        <div class="card-body">
+          <div class="grid-2">
+            <div><strong>Meeting Title:</strong> ${item.meetingDetails.meetingTitle || "N/A"}</div>
+            <div><strong>Subtype:</strong> ${subtypeLabel}</div>
+          </div>
+          ${item.meetingDetails.meetingSubtype === "planning" ? `
+            <div class="grid-2" style="margin-top: 1rem;">
+              <div><strong>Scheduled Date & Time:</strong> ${item.meetingDetails.dateAndTime ? new Date(item.meetingDetails.dateAndTime).toLocaleString() : "N/A"}</div>
+              <div><strong>Venue:</strong> ${item.meetingDetails.venue || "N/A"}</div>
+            </div>
+            <div class="detail-section">
+              <div class="section-title">Meeting Agenda (To be discussed)</div>
+              <div class="textarea-val">${item.meetingDetails.planningAgenda}</div>
+            </div>
+          ` : `
+            <div class="detail-section">
+              <div class="section-title">Meeting Agenda (What was discussed)</div>
+              <div class="textarea-val">${item.meetingDetails.minutesAgenda}</div>
+            </div>
+            <div class="detail-section">
+              <div class="section-title">Key Takeaways (What was achieved/decided)</div>
+              <div class="textarea-val">${item.meetingDetails.keyTakeaways}</div>
+            </div>
+            <div class="detail-section">
+              <div class="section-title">Follow-up Actions</div>
+              <div class="textarea-val">${item.meetingDetails.followUpActions}</div>
+            </div>
+            <div class="detail-section">
+              <div class="section-title">Attendance</div>
+              <div class="textarea-val">${item.meetingDetails.attendance}</div>
+            </div>
+          `}
+        </div>
+      </div>
+    `;
+  }
+
+  let feedbackHTML = "";
+  if (item.adminFeedback) {
+    feedbackHTML = `
+      <div class="card" style="margin-top: 25px; border-color: #e2e8f0;">
+        <div class="card-header" style="background-color: #3182ce; color: white;">Possibilities Africa Review & Feedback</div>
+        <div class="card-body">
+          <div><strong>Status:</strong> ${item.status ? item.status.toUpperCase() : "PENDING"}</div>
+          <div style="margin-top: 10px;">
+            <strong>Reviewer Comments:</strong>
+            <div class="textarea-val" style="background-color: #ebf8ff; border-color: #bee3f8; margin-top: 5px;">${item.adminFeedback}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Possibilities Africa Report - ${item.id}</title>
+      <style>
+        body {
+          font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+          color: #2d3748;
+          line-height: 1.6;
+          margin: 0;
+          padding: 30px;
+          background-color: #ffffff;
+        }
+        .header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          border-bottom: 3px solid #1559ed;
+          padding-bottom: 20px;
+          margin-bottom: 30px;
+        }
+        .header img {
+          height: 60px;
+        }
+        .header-title {
+          text-align: right;
+        }
+        .header-title h1 {
+          margin: 0;
+          font-size: 1.5rem;
+          color: #0f172a;
+        }
+        .header-title p {
+          margin: 5px 0 0 0;
+          font-size: 0.85rem;
+          color: #718096;
+        }
+        .meta-summary {
+          display: flex;
+          justify-content: space-between;
+          background-color: #f7fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 6px;
+          padding: 15px 20px;
+          margin-bottom: 30px;
+        }
+        .meta-item {
+          display: flex;
+          flex-direction: column;
+        }
+        .meta-label {
+          font-size: 0.75rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          color: #718096;
+        }
+        .meta-val {
+          font-size: 0.95rem;
+          font-weight: bold;
+          color: #1a202c;
+        }
+        .card {
+          border: 1px solid #e2e8f0;
+          border-radius: 6px;
+          margin-bottom: 25px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+        .card-header {
+          background-color: #0f172a;
+          color: #ffffff;
+          padding: 12px 20px;
+          font-weight: bold;
+          font-size: 1rem;
+          border-radius: 5px 5px 0 0;
+        }
+        .card-body {
+          padding: 20px;
+        }
+        .grid-2 {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 15px;
+        }
+        .detail-section {
+          margin-top: 20px;
+          border-top: 1px solid #edf2f7;
+          padding-top: 15px;
+        }
+        .section-title {
+          font-size: 0.85rem;
+          font-weight: bold;
+          text-transform: uppercase;
+          color: #718096;
+          margin-bottom: 8px;
+        }
+        .textarea-val {
+          background-color: #f8fafc;
+          border: 1px solid #edf2f7;
+          border-radius: 4px;
+          padding: 12px;
+          font-size: 0.9rem;
+          white-space: pre-wrap;
+          color: #2d3748;
+        }
+        .table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 10px;
+        }
+        .table th, .table td {
+          border: 1px solid #edf2f7;
+          padding: 10px;
+          text-align: left;
+          font-size: 0.85rem;
+        }
+        .table th {
+          background-color: #f7fafc;
+          font-weight: bold;
+        }
+        @media print {
+          body {
+            padding: 0;
+          }
+          button, .no-print {
+            display: none;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <img src="https://africa.possibilitiesafrica.org/wp-content/uploads/2021/08/2020-PA-Logo_Color.png" alt="PA Logo">
+        <div class="header-title">
+          <h1>Community Activity & Meeting Form</h1>
+          <p>Possibilities Africa Internal Community Reporting and Planning System</p>
+        </div>
+      </div>
+
+      <div class="meta-summary">
+        <div class="meta-item">
+          <span class="meta-label">Reference ID</span>
+          <span class="meta-val">${item.id}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Date Submitted</span>
+          <span class="meta-val">${dateStr}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Status</span>
+          <span class="meta-val" style="color: ${item.status === "completed" ? "#38a169" : item.status === "review" ? "#3182ce" : "#dd6b20"}">${item.status ? item.status.toUpperCase() : "PENDING"}</span>
+        </div>
+      </div>
+
+      <!-- Section A -->
+      <div class="card">
+        <div class="card-header" style="background-color: #f6ad55; color: #1a202c;">Section A: Community Information</div>
+        <div class="card-body">
+          <div class="grid-2">
+            <div><strong>Country Name:</strong> ${item.countryName || "N/A"}</div>
+            <div><strong>Catchment Area:</strong> ${item.catchmentArea || "N/A"}</div>
+            <div><strong>Community Name:</strong> ${item.communityName || "N/A"}</div>
+            <div><strong>CMC:</strong> ${item.cmc || "N/A"}</div>
+            <div><strong>Date Established:</strong> ${item.dateEstablished || "N/A"}</div>
+            <div><strong>Number of Shalom Leaders:</strong> ${item.shalomLeadersCount || "N/A"}</div>
+            <div><strong>Leader Providing Info:</strong> ${item.leaderName || "N/A"}</div>
+            <div><strong>Phone Number:</strong> ${item.contactInfo || "N/A"}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section Details -->
+      ${sectionDetailsHTML}
+
+      <!-- Admin Comments -->
+      ${feedbackHTML}
+
+      <script>
+        window.onload = function() {
+          setTimeout(function() {
+            window.print();
+          }, 300);
+        };
+      </script>
+    </body>
+    </html>
+  `;
+};
+
+const generatePrintHTMLAll = (items: FormData[]) => {
+  const tableRowsHTML = items.map(item => {
+    const title = item.submissionType === "activity_event"
+      ? item.activityTitle
+      : item.meetingDetails.meetingTitle;
+
+    const dateStr = item.timestamp ? new Date(item.timestamp).toLocaleDateString() : "Unknown";
+
+    const subtypeLabel = item.submissionType === "activity_event"
+      ? (item.activitySubtype === "planning" ? "Activity (Planning)" : "Activity (Reporting)")
+      : (item.meetingDetails.meetingSubtype === "planning" ? "Meeting (Planning)" : "Meeting (Minutes)");
+
+    const statusStyle = item.status === "completed"
+      ? "background-color: #f0fff4; color: #38a169;"
+      : item.status === "review"
+        ? "background-color: #ebf8ff; color: #3182ce;"
+        : "background-color: #fffaf0; color: #dd6b20;";
+
+    return `
+      <tr>
+        <td><strong>${item.id}</strong></td>
+        <td>${dateStr}</td>
+        <td>${item.communityName}</td>
+        <td>${item.leaderName}</td>
+        <td>${item.countryName}</td>
+        <td>${subtypeLabel}</td>
+        <td>${title || "Untitled"}</td>
+        <td><span class="badge" style="${statusStyle}">${item.status || "PENDING"}</span></td>
+      </tr>
+    `;
+  }).join("");
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Possibilities Africa - All Submissions Report</title>
+      <style>
+        body {
+          font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+          color: #2d3748;
+          line-height: 1.4;
+          padding: 30px;
+          background-color: #ffffff;
+        }
+        .header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          border-bottom: 3px solid #1559ed;
+          padding-bottom: 20px;
+          margin-bottom: 30px;
+        }
+        .header img {
+          height: 50px;
+        }
+        .header-title h1 {
+          margin: 0;
+          font-size: 1.4rem;
+          color: #0f172a;
+        }
+        .table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 20px;
+        }
+        .table th, .table td {
+          border: 1px solid #e2e8f0;
+          padding: 10px 12px;
+          text-align: left;
+          font-size: 0.8rem;
+        }
+        .table th {
+          background-color: #f7fafc;
+          font-weight: bold;
+          text-transform: uppercase;
+          color: #4a5568;
+        }
+        .badge {
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-size: 0.7rem;
+          font-weight: bold;
+          text-transform: uppercase;
+        }
+        @media print {
+          body {
+            padding: 0;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <img src="https://africa.possibilitiesafrica.org/wp-content/uploads/2021/08/2020-PA-Logo_Color.png" alt="PA Logo">
+        <div class="header-title">
+          <h1>Admin's View</h1>
+          <p>Possibilities Africa Community Form Submissions Report - Generated ${new Date().toLocaleDateString()}</p>
+        </div>
+      </div>
+
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Reference ID</th>
+            <th>Date Submitted</th>
+            <th>Community</th>
+            <th>Leader</th>
+            <th>Country</th>
+            <th>Type</th>
+            <th>Title</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableRowsHTML}
+        </tbody>
+      </table>
+
+      <script>
+        window.onload = function() {
+          setTimeout(function() {
+            window.print();
+          }, 300);
+        };
+      </script>
+    </body>
+    </html>
+  `;
+};
+
+interface HistoryListProps {
+  onLogout?: () => void;
+}
+
+export default function HistoryList({ onLogout }: HistoryListProps = {}) {
+  const [submissions, setSubmissions] = useState<FormData[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedItem, setSelectedItem] = useState<QuestionnaireData | null>(null);
+  const [selectedItem, setSelectedItem] = useState<FormData | null>(null);
 
   // Filters State
   const [filterCountry, setFilterCountry] = useState("");
@@ -40,7 +644,7 @@ export default function HistoryList() {
       return item;
     });
 
-    localStorage.setItem("pa_questionnaires", JSON.stringify(updatedSubmissions));
+    localStorage.setItem("pa_forms", JSON.stringify(updatedSubmissions));
     setSubmissions(updatedSubmissions);
     setSelectedItem({
       ...selectedItem,
@@ -90,10 +694,10 @@ export default function HistoryList() {
   }, []);
 
   const loadSubmissions = () => {
-    const saved = localStorage.getItem("pa_questionnaires");
+    const saved = localStorage.getItem("pa_forms") || localStorage.getItem("pa_questionnaires");
     if (saved) {
       try {
-        const parsed = JSON.parse(saved) as QuestionnaireData[];
+        const parsed = JSON.parse(saved) as FormData[];
         // Auto initialize status and feedback for legacy records
         const sanitized = parsed.map(item => ({
           ...item,
@@ -117,7 +721,7 @@ export default function HistoryList() {
     if (!confirm("Are you sure you want to delete this submission?")) return;
 
     const updated = submissions.filter((item) => item.id !== id);
-    localStorage.setItem("pa_questionnaires", JSON.stringify(updated));
+    localStorage.setItem("pa_forms", JSON.stringify(updated));
     setSubmissions(updated);
     if (selectedItem?.id === id) {
       setSelectedItem(null);
@@ -125,12 +729,12 @@ export default function HistoryList() {
   };
 
   // Download a single item as JSON
-  const handleExportSingle = (item: QuestionnaireData, e: React.MouseEvent) => {
+  const handleExportSingle = (item: FormData, e: React.MouseEvent) => {
     e.stopPropagation();
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(item, null, 2));
     const downloadAnchor = document.createElement("a");
     downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `PA-Questionnaire-${item.id}.json`);
+    downloadAnchor.setAttribute("download", `PA-Form-${item.id}.json`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
@@ -142,15 +746,65 @@ export default function HistoryList() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(submissions, null, 2));
     const downloadAnchor = document.createElement("a");
     downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `PA-All-Questionnaires-${Date.now()}.json`);
+    downloadAnchor.setAttribute("download", `PA-All-Forms-${Date.now()}.json`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
   };
 
+  const handleExportCSVAll = () => {
+    if (submissions.length === 0) return;
+    const csvContent = convertToCSV(submissions);
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const downloadAnchor = document.createElement("a");
+    downloadAnchor.setAttribute("href", url);
+    downloadAnchor.setAttribute("download", `PA-All-Forms-${Date.now()}.csv`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportCSVSingle = (item: FormData, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const csvContent = convertToCSV([item]);
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const downloadAnchor = document.createElement("a");
+    downloadAnchor.setAttribute("href", url);
+    downloadAnchor.setAttribute("download", `PA-Form-${item.id}.csv`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportPDFSingle = (item: FormData, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const printWindow = window.open("", "_blank");
+    if (printWindow) {
+      printWindow.document.write(generatePrintHTML(item));
+      printWindow.document.close();
+    } else {
+      alert("Failed to open print window. Please allow popups for this site.");
+    }
+  };
+
+  const handleExportPDFAll = () => {
+    if (submissions.length === 0) return;
+    const printWindow = window.open("", "_blank");
+    if (printWindow) {
+      printWindow.document.write(generatePrintHTMLAll(submissions));
+      printWindow.document.close();
+    } else {
+      alert("Failed to open print window. Please allow popups for this site.");
+    }
+  };
+
   // Inject Demo Submissions for testing
   const handleInjectDemo = () => {
-    const demoData: QuestionnaireData[] = [
+    const demoData: FormData[] = [
       {
         id: "PAQ-TLD9802",
         timestamp: Date.now() - 3600000 * 24 * 2, // 2 days ago
@@ -203,8 +857,8 @@ export default function HistoryList() {
             base64: "data:text/plain;base64,RGVtbyBQREYgQ29udGVudCBmb3IgTGVhZGVyc2hpcCBUcmFpbmluZyBBZ2VuZGE="
           }
         ],
-        planningDetails: INITIAL_QUESTIONNAIRE_STATE.planningDetails,
-        meetingDetails: INITIAL_QUESTIONNAIRE_STATE.meetingDetails,
+        planningDetails: INITIAL_FORM_STATE.planningDetails,
+        meetingDetails: INITIAL_FORM_STATE.meetingDetails,
         status: "completed",
         adminFeedback: "Great work conducting this leadership training seminar! The graduations and planned kickoff for Shalom Groups are excellent outcomes.",
       },
@@ -225,8 +879,8 @@ export default function HistoryList() {
         programId: "",
         pppSelected: "",
         activityTypesSelected: [],
-        reportingDetails: INITIAL_QUESTIONNAIRE_STATE.reportingDetails,
-        planningDetails: INITIAL_QUESTIONNAIRE_STATE.planningDetails,
+        reportingDetails: INITIAL_FORM_STATE.reportingDetails,
+        planningDetails: INITIAL_FORM_STATE.planningDetails,
         meetingDetails: {
           meetingSubtype: "minutes",
           meetingTitle: "Quarterly Table Banking Review Meeting",
@@ -258,7 +912,7 @@ export default function HistoryList() {
         programId: "epp",
         pppSelected: "Income Generating Activities (IGAs)",
         activityTypesSelected: ["Working", "Resourcing"],
-        reportingDetails: INITIAL_QUESTIONNAIRE_STATE.reportingDetails,
+        reportingDetails: INITIAL_FORM_STATE.reportingDetails,
         planningDetails: {
           whatWhyHow: "We intend to launch a collective poultry farming project for 15 families to establish sustainable egg selling businesses. Possibilities Africa will supply chicks, and we will build coop shelters locally.",
           expectedOutcomes: "Provide secondary income source to 15 households, yielding an expected KES 8,000 per family monthly within 6 months.",
@@ -284,17 +938,17 @@ export default function HistoryList() {
             }
           },
         },
-        meetingDetails: INITIAL_QUESTIONNAIRE_STATE.meetingDetails,
+        meetingDetails: INITIAL_FORM_STATE.meetingDetails,
         status: "pending",
         adminFeedback: "",
       },
     ];
 
-    localStorage.setItem("pa_questionnaires", JSON.stringify(demoData));
+    localStorage.setItem("pa_forms", JSON.stringify(demoData));
     setSubmissions(demoData);
   };
 
-  const getSubtypeLabel = (item: QuestionnaireData) => {
+  const getSubtypeLabel = (item: FormData) => {
     if (item.submissionType === "activity_event") {
       return item.activitySubtype === "planning" ? "Activity (Planning)" : "Activity (Reporting)";
     } else {
@@ -302,7 +956,7 @@ export default function HistoryList() {
     }
   };
 
-  const getSubtypeBadgeColor = (item: QuestionnaireData) => {
+  const getSubtypeBadgeColor = (item: FormData) => {
     if (item.submissionType === "activity_event") {
       return item.activitySubtype === "planning" ? "var(--pa-blue)" : "var(--pa-orange)";
     } else {
@@ -378,15 +1032,35 @@ export default function HistoryList() {
           >
             ← Back to Admin's Page
           </button>
-          <button
-            className="btn btn-secondary"
-            style={{ padding: "0.5rem 1rem", fontSize: "0.85rem" }}
-            onClick={(e) => handleExportSingle(selectedItem, e)}
-            title="Download JSON"
-            id="btn-detail-export-json"
-          >
-            📥 Export JSON
-          </button>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button
+              className="btn btn-secondary"
+              style={{ padding: "0.5rem 1rem", fontSize: "0.85rem" }}
+              onClick={(e) => handleExportCSVSingle(selectedItem, e)}
+              title="Download Excel / CSV"
+              id="btn-detail-export-csv"
+            >
+              📊 Export Excel
+            </button>
+            <button
+              className="btn btn-secondary"
+              style={{ padding: "0.5rem 1rem", fontSize: "0.85rem" }}
+              onClick={(e) => handleExportPDFSingle(selectedItem, e)}
+              title="Print / Save PDF"
+              id="btn-detail-export-pdf"
+            >
+              📄 Export PDF
+            </button>
+            <button
+              className="btn btn-secondary"
+              style={{ padding: "0.5rem 1rem", fontSize: "0.85rem" }}
+              onClick={(e) => handleExportSingle(selectedItem, e)}
+              title="Download JSON"
+              id="btn-detail-export-json"
+            >
+              📥 Export JSON
+            </button>
+          </div>
         </div>
 
         {/* Detailed Content styled like a premium page/card */}
@@ -518,7 +1192,7 @@ export default function HistoryList() {
                   <span className="preview-val">{selectedItem.leaderName}</span>
                 </div>
                 <div className="preview-item" style={{ gridColumn: "span 2" }}>
-                  <span className="preview-label">Contact Information</span>
+                  <span className="preview-label">Phone Number</span>
                   <span className="preview-val">{selectedItem.contactInfo}</span>
                 </div>
               </div>
@@ -858,16 +1532,34 @@ export default function HistoryList() {
   return (
     <div id="submissions-history-view">
       <div className="history-header-bar">
-        <h2 style={{ fontSize: "1.5rem", color: "var(--pa-navy)" }}>Questionnaire Submission Log</h2>
-        <div style={{ display: "flex", gap: "0.5rem" }}>
+        <h2 style={{ fontSize: "1.5rem", color: "var(--pa-navy)" }}>Admin's View</h2>
+        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
           {submissions.length > 0 && (
-            <button className="btn btn-secondary" onClick={handleExportAll} id="btn-export-all">
-              📥 Export All (JSON)
-            </button>
+            <>
+              <button className="btn btn-secondary" onClick={handleExportCSVAll} id="btn-export-all-csv">
+                📊 Export All (Excel)
+              </button>
+              <button className="btn btn-secondary" onClick={handleExportPDFAll} id="btn-export-all-pdf">
+                📄 Export All (PDF)
+              </button>
+              <button className="btn btn-secondary" onClick={handleExportAll} id="btn-export-all">
+                📥 Export All (JSON)
+              </button>
+            </>
           )}
           {submissions.length === 0 && (
             <button className="btn btn-primary" onClick={handleInjectDemo} id="btn-inject-demo">
               ⚡ Load Demo Submissions
+            </button>
+          )}
+          {onLogout && (
+            <button 
+              className="btn btn-secondary" 
+              onClick={onLogout} 
+              id="btn-logout"
+              style={{ borderColor: "var(--color-error)", color: "var(--color-error)" }}
+            >
+              🚪 Sign Out
             </button>
           )}
         </div>
@@ -983,7 +1675,7 @@ export default function HistoryList() {
           <h4>No submissions found</h4>
           <p className="success-desc" style={{ fontSize: "0.9rem" }}>
             {submissions.length === 0
-              ? "You haven't submitted any questionnaires yet on this device. Create one or load our demo data above."
+              ? "You haven't submitted any forms yet on this device. Create one or load our demo data above."
               : "No search results match your criteria. Try adjusting your search term."}
           </p>
         </div>
@@ -1057,6 +1749,24 @@ export default function HistoryList() {
                     )}
                   </div>
                   <div style={{ display: "flex", gap: "0.5rem" }}>
+                    <button
+                      className="btn btn-secondary"
+                      style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem" }}
+                      onClick={(e) => handleExportCSVSingle(item, e)}
+                      title="Download CSV (Excel)"
+                      id={`btn-export-single-csv-${item.id}`}
+                    >
+                      📊 Excel
+                    </button>
+                    <button
+                      className="btn btn-secondary"
+                      style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem" }}
+                      onClick={(e) => handleExportPDFSingle(item, e)}
+                      title="Print / Save PDF"
+                      id={`btn-export-single-pdf-${item.id}`}
+                    >
+                      📄 PDF
+                    </button>
                     <button
                       className="btn btn-secondary"
                       style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem" }}

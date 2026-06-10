@@ -80,7 +80,7 @@ export interface UploadedFile {
   base64?: string;
 }
 
-export interface QuestionnaireData {
+export interface FormData {
   id?: string;
   timestamp?: number;
   
@@ -158,7 +158,7 @@ export interface QuestionnaireData {
   adminFeedback?: string;
 }
 
-export const INITIAL_QUESTIONNAIRE_STATE: QuestionnaireData = {
+export const INITIAL_FORM_STATE: FormData = {
   countryName: "",
   catchmentArea: "",
   cmc: "",

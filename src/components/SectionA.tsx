@@ -1,11 +1,11 @@
 "use client";
 
 import React from "react";
-import { QuestionnaireData } from "../data/questionnaireData";
+import { FormData } from "../data/formData";
 
 interface SectionAProps {
-  formData: QuestionnaireData;
-  onChange: (updates: Partial<QuestionnaireData>) => void;
+  formData: FormData;
+  onChange: (updates: Partial<FormData>) => void;
   errors: Record<string, string>;
 }
 
@@ -25,9 +25,7 @@ export default function SectionA({ formData, onChange, errors }: SectionAProps) 
         <div className={`form-group ${errors.countryName ? "error" : ""}`}>
           <label className="form-label" htmlFor="countryName">
             Country Name <span className="required-dot">*</span>
-            <span style={{ textTransform: "none", fontWeight: "normal", color: "var(--text-muted)", fontSize: "0.8rem", display: "block", marginTop: "0.2rem" }}>
-              (e.g. Kenya)
-            </span>
+
           </label>
           <input
             type="text"
@@ -44,9 +42,7 @@ export default function SectionA({ formData, onChange, errors }: SectionAProps) 
         <div className={`form-group ${errors.catchmentArea ? "error" : ""}`}>
           <label className="form-label" htmlFor="catchmentArea">
             Catchment Area <span className="required-dot">*</span>
-            <span style={{ textTransform: "none", fontWeight: "normal", color: "var(--text-muted)", fontSize: "0.8rem", display: "block", marginTop: "0.2rem" }}>
-              (e.g. Western Region)
-            </span>
+
           </label>
           <input
             type="text"
@@ -63,9 +59,7 @@ export default function SectionA({ formData, onChange, errors }: SectionAProps) 
         <div className={`form-group ${errors.communityName ? "error" : ""}`}>
           <label className="form-label" htmlFor="communityName">
             Community Name <span className="required-dot">*</span>
-            <span style={{ textTransform: "none", fontWeight: "normal", color: "var(--text-muted)", fontSize: "0.8rem", display: "block", marginTop: "0.2rem" }}>
-              (e.g. Kakamega Community)
-            </span>
+
           </label>
           <input
             type="text"
@@ -82,9 +76,7 @@ export default function SectionA({ formData, onChange, errors }: SectionAProps) 
         <div className={`form-group ${errors.cmc ? "error" : ""}`}>
           <label className="form-label" htmlFor="cmc">
             CMC <span className="required-dot">*</span>
-            <span style={{ textTransform: "none", fontWeight: "normal", color: "var(--text-muted)", fontSize: "0.8rem", display: "block", marginTop: "0.2rem" }}>
-              (e.g. CMC Western Chapter)
-            </span>
+
           </label>
           <input
             type="text"
@@ -159,10 +151,7 @@ export default function SectionA({ formData, onChange, errors }: SectionAProps) 
         {/* Contact Information */}
         <div className={`form-group full-width ${errors.contactInfo ? "error" : ""}`}>
           <label className="form-label" htmlFor="contactInfo">
-            Contact Information <span className="required-dot">*</span>
-            <span style={{ textTransform: "none", fontWeight: "normal", color: "var(--text-muted)", fontSize: "0.8rem", display: "block", marginTop: "0.2rem" }}>
-              (Email, Phone Number, or Address)
-            </span>
+            Phone Number <span className="required-dot">*</span>
           </label>
           <input
             type="text"

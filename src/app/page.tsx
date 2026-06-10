@@ -3,7 +3,7 @@
 import Banner from "@/components/Banner";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import QuestionnaireForm from "@/components/QuestionnaireForm";
+import Form from "@/components/Form";
 
 export default function Home() {
   return (
@@ -11,7 +11,7 @@ export default function Home() {
       <Banner />
       <Header />
       <main className="container section-padding" style={{ flex: 1 }}>
-        <QuestionnaireForm />
+        <Form />
       </main>
       <Footer />
     </>
