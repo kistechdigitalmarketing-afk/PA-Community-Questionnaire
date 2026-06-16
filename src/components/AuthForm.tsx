@@ -50,8 +50,8 @@ export default function AuthForm({ onLoginSuccess }: AuthFormProps) {
     }
 
     // 2. Fallback local storage simulation path
-    const defaultAdminEmail = "admin@possibilitiesafrica.org";
-    const defaultAdminPassword = "admin123";
+    const defaultAdminEmail = "test@example.com";
+    const defaultAdminPassword = "Test123";
 
     if (
       email.toLowerCase().trim() === defaultAdminEmail.toLowerCase() &&
@@ -195,7 +195,7 @@ export default function AuthForm({ onLoginSuccess }: AuthFormProps) {
                   id="signin-email"
                   type="email"
                   className="form-input"
-                  placeholder="admin@possibilitiesafrica.org"
+                  placeholder="test@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   style={{ paddingLeft: "2.75rem" }}
@@ -223,7 +223,7 @@ export default function AuthForm({ onLoginSuccess }: AuthFormProps) {
                   id="signin-password"
                   type={showPassword ? "text" : "password"}
                   className="form-input"
-                  placeholder="••••••••"
+                  placeholder="Test123"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   style={{ paddingLeft: "2.75rem", paddingRight: "2.75rem" }}

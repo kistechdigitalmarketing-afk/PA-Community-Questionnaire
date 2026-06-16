@@ -20,6 +20,7 @@ export default function Form() {
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM_STATE);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submittedId, setSubmittedId] = useState<string>("");
+  const [stepError, setStepError] = useState("");
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
@@ -205,7 +206,7 @@ export default function Form() {
     if (currentStep === 0) return true;
     const newErrors: Record<string, string> = {};
 
-    if (currentStep === 1) {
+    if (currentStep === 2) {
       if (!formData.countryName.trim()) newErrors.countryName = "Country name is required";
       if (!formData.catchmentArea.trim()) newErrors.catchmentArea = "Catchment area is required";
       if (!formData.communityName.trim()) newErrors.communityName = "Community name is required";
@@ -220,7 +221,7 @@ export default function Form() {
       if (!formData.contactInfo.trim()) newErrors.contactInfo = "Phone number is required";
     }
 
-    if (currentStep === 2) {
+    if (currentStep === 3) {
       if (!formData.submissionType) {
         newErrors.submissionType = "Please select a submission type to proceed";
       } else if (formData.submissionType === "activity_event") {
@@ -305,7 +306,7 @@ export default function Form() {
         }
 
         if (meet.meetingSubtype === "planning") {
-          if (!meet.dateAndTime.trim()) newErrors["meetingDetails.dateAndTime"] = "Meeting date and time is required";
+          if (!meet.dateAndTime.trim())newErrors["meetingDetails.dateAndTime"] = "Please enter the meeting date and time (e.g. 26-06-2026 1:30 PM)"
           if (!meet.venue.trim()) newErrors["meetingDetails.venue"] = "Venue is required";
           if (!meet.planningAgenda.trim()) newErrors["meetingDetails.planningAgenda"] = "Meeting agenda is required";
         }
@@ -320,15 +321,22 @@ export default function Form() {
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+
+if (Object.keys(newErrors).length > 0) {
+  setStepError(Object.values(newErrors)[0]);
+  return false;
+}
+
+setStepError("");
+return true;
   };
 
   const handleNext = () => {
-    if (validateStep(step)) {
-      setStep(step + 1);
-      window.scrollTo(0, 0);
-    }
-  };
+  if (validateStep(step)) {
+    setStep(step + 1);
+    window.scrollTo(0, 0);
+  }
+};
 
   const handleBack = () => {
     setStep(step - 1);
@@ -348,10 +356,10 @@ export default function Form() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (step < 3) {
+    if (step < 4) {
       return;
     }
-    if (!validateStep(2)) return;
+    if (!validateStep(3)) return;
 
     // Generate unique ID and metadata
     const submissionId = "PAQ-" + Math.random().toString(36).substring(2, 9).toUpperCase();
@@ -369,18 +377,18 @@ export default function Form() {
           timestamp: Date.now() // Ensure fresh numeric timestamp for sort orders
         });
         setSubmittedId(submissionId);
-        setStep(4); // Success state
+        setStep(5); // Success state
       } catch (err) {
         console.error("Failed to save submission to Firestore", err);
         // Fallback to local storage in case of connection failure
         saveLocally(finalData);
         setSubmittedId(submissionId);
-        setStep(4);
+        setStep(5);
       }
     } else {
       saveLocally(finalData);
       setSubmittedId(submissionId);
-      setStep(4); // Success state
+      setStep(5); // Success state
     }
   };
 
@@ -395,10 +403,10 @@ export default function Form() {
     if (step === 0 || step > 3) return null; // Hide stepper on instructions or success screen
     
     const stepsInfo = [
-      { num: 1, label: "Community Info" },
-      { num: 2, label: "Submission Details" },
-      { num: 3, label: "Preview & Submit" },
-    ];
+  { num: 2, label: "Community Info" },
+  { num: 3, label: "Details" },
+  { num: 4, label: "Preview" },
+];
 
     return (
       <div className="stepper" id="form-stepper">
@@ -420,155 +428,151 @@ export default function Form() {
 
   return (
     <div className="wizard-card" id="form-wizard">
-      <div className="wizard-header">
-        <h2 className="wizard-title" id="form-card-title">
-          Community Activity & Meeting Form
-        </h2>
-        <p className="wizard-subtitle" id="form-card-subtitle">
-          Possibilities Africa Internal Community Reporting and Planning System
-        </p>
-      </div>
 
       {renderStepper()}
 
-      {/* STEP 0: INSTRUCTIONS PAGE */}
-        {step === 0 && (
-          <div className="instructions-page" id="form-instructions" style={{ animation: "modalFadeIn 0.35s ease" }}>
-            <h3 className="section-subtitle" style={{ fontSize: "1.25rem", marginBottom: "1rem", color: "var(--pa-navy)" }}>
-              Submission Instructions
-            </h3>
-            <p style={{ color: "var(--text-muted)", marginBottom: "1.5rem", fontSize: "0.95rem", lineHeight: "1.5" }}>
-              This reporting portal allows Shalom leaders to submit activity updates, project plans, and meeting minutes to Possibilities Africa. Please review the instructions below before you begin filling out the form:
-            </p>
+{/* STEP 0 - START SCREEN */}
+{step === 0 && (
+  <div style={{ textAlign: "center", padding: "2rem" }}>
+    <div
+      style={{
+        background: "#fff8e6",
+        border: "1px solid #f0c14b",
+        borderRadius: "12px",
+        padding: "1rem",
+        marginBottom: "2rem",
+        maxWidth: "700px",
+        marginLeft: "auto",
+        marginRight: "auto",
+        textAlign: "left",
+      }}
+    >
+      <h4>💡 Reporting Guidelines</h4>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "2rem" }}>
-              <div style={{ display: "flex", gap: "1rem", backgroundColor: "white", padding: "1rem", borderRadius: "var(--border-radius-md)", border: "1px solid var(--border-color)", boxShadow: "0 1px 2px rgba(0,0,0,0.02)" }}>
-                <div style={{ fontSize: "1.5rem", color: "var(--pa-blue)", lineHeight: "1", fontWeight: "bold" }}>①</div>
-                <div>
-                  <h4 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: "0.2rem" }}>Community Information</h4>
-                  <p style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>Provide details about your local community name, catchment area, CMC, and the reporting leader's phone number.</p>
-                </div>
-              </div>
+      <ul style={{ paddingLeft: "1.5rem", lineHeight: 1.8 }}>
+        <li>
+          Fields marked with a red asterisk (*) are mandatory and must be
+          filled.
+        </li>
+        <li>
+          You can upload supporting documents (photos, agendas, worksheets).
+          File size must be under 1.5 MB.
+        </li>
+      </ul>
+    </div>
 
-              <div style={{ display: "flex", gap: "1rem", backgroundColor: "white", padding: "1rem", borderRadius: "var(--border-radius-md)", border: "1px solid var(--border-color)", boxShadow: "0 1px 2px rgba(0,0,0,0.02)" }}>
-                <div style={{ fontSize: "1.5rem", color: "var(--pa-blue)", lineHeight: "1", fontWeight: "bold" }}>②</div>
-                <div>
-                  <h4 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: "0.2rem" }}>Submission Type</h4>
-                  <p style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>Select whether you are reporting details of a completed activity/event, planning a future activity, or documenting a meeting (planning or minutes).</p>
-                </div>
-              </div>
+    <h3>What would you like to do today?</h3>
 
-              <div style={{ display: "flex", gap: "1rem", backgroundColor: "white", padding: "1rem", borderRadius: "var(--border-radius-md)", border: "1px solid var(--border-color)", boxShadow: "0 1px 2px rgba(0,0,0,0.02)" }}>
-                <div style={{ fontSize: "1.5rem", color: "var(--pa-blue)", lineHeight: "1", fontWeight: "bold" }}>③</div>
-                <div>
-                  <h4 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: "0.2rem" }}>Detailed Fields</h4>
-                  <p style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>Explain the activity scope, goals, outcomes, list participants, and specify resources utilized/needed along with their provider details.</p>
-                </div>
-              </div>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "1rem",
+        maxWidth: "500px",
+        margin: "2rem auto",
+      }}
+    >
+      <button
+        type="button"
+        className="btn btn-primary"
+        onClick={() => {
+          updateFormData({
+            submissionType: "activity_event",
+            activitySubtype: "reporting",
+          });
+          setStep(2);
+        }}
+      >
+        Report on a Past Activity / Event
+      </button>
 
-              <div style={{ display: "flex", gap: "1rem", backgroundColor: "white", padding: "1rem", borderRadius: "var(--border-radius-md)", border: "1px solid var(--border-color)", boxShadow: "0 1px 2px rgba(0,0,0,0.02)" }}>
-                <div style={{ fontSize: "1.5rem", color: "var(--pa-blue)", lineHeight: "1", fontWeight: "bold" }}>④</div>
-                <div>
-                  <h4 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: "0.2rem" }}>Review & Submit</h4>
-                  <p style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>Preview and verify all entered answers. Ensure everything is correct before finally submitting the response.</p>
-                </div>
-              </div>
-            </div>
+      <button
+        type="button"
+        className="btn btn-primary"
+        onClick={() => {
+          updateFormData({
+            submissionType: "activity_event",
+            activitySubtype: "planning",
+          });
+          setStep(2);
+        }}
+      >
+        Plan a Future Activity / Event
+      </button>
 
-            <div style={{
-              backgroundColor: "var(--pa-yellow-light)",
-              border: "1px solid rgba(249, 198, 16, 0.3)",
-              borderRadius: "var(--border-radius-md)",
-              padding: "1rem",
-              marginBottom: "2rem"
-            }}>
-              <h4 style={{ fontSize: "0.9rem", color: "var(--pa-navy)", fontWeight: 700, marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                💡 Key Guidelines & Tips
-              </h4>
-              <ul style={{ paddingLeft: "1.2rem", fontSize: "0.85rem", color: "var(--text-main)", display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-                <li>Fields marked with a red asterisk (<span className="required-dot" style={{ display: "inline", position: "static", float: "none" }}>*</span>) are mandatory and must be filled.</li>
-                <li>You can upload supporting documents (photos, agendas, worksheets). File size must be under <strong>1.5 MB</strong>.</li>
-              </ul>
-            </div>
+      <button
+        type="button"
+        className="btn btn-primary"
+        onClick={() => {
+          updateFormData({
+            submissionType: "meeting",
+            meetingDetails: {
+              ...formData.meetingDetails,
+              meetingSubtype: "minutes",
+            },
+          });
+          setStep(2);
+        }}
+      >
+        Report on a Past Meeting (Minutes)
+      </button>
 
-            <div style={{ display: "flex", justifyContent: "center", marginTop: "2rem" }}>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => setStep(1)}
-                style={{ padding: "0.75rem 2rem", fontSize: "1rem", display: "inline-flex", alignItems: "center", gap: "0.5rem" }}
-                id="btn-start-form"
-              >
-                Start Submission ➔
-              </button>
-            </div>
-          </div>
-        )}
+      <button
+        type="button"
+        className="btn btn-primary"
+        onClick={() => {
+          updateFormData({
+            submissionType: "meeting",
+            meetingDetails: {
+              ...formData.meetingDetails,
+              meetingSubtype: "planning",
+            },
+          });
+          setStep(2);
+        }}
+      >
+        Plan / Schedule a Future Meeting
+      </button>
+    </div>
+  </div>
+)}
 
-      {step >= 1 && (
-        <form onSubmit={handleSubmit} noValidate id="form-wizard-flow">
-        {/* STEP 1: SECTION A */}
-        {step === 1 && (
-          <SectionA
+{/* FORM STEPS */}
+{step >= 2 && step <= 4 && (
+  <form onSubmit={handleSubmit} noValidate id="form-wizard-flow">
+
+    {step === 2 && (
+      <SectionA
+        formData={formData}
+        onChange={updateFormData}
+        errors={errors}
+      />
+    )}
+
+    {step === 3 && (
+      <>
+        {formData.submissionType === "activity_event" ? (
+          <SectionC
+            formData={formData}
+            onChange={updateFormData}
+            errors={errors}
+          />
+        ) : (
+          <SectionD
             formData={formData}
             onChange={updateFormData}
             errors={errors}
           />
         )}
+      </>
+    )}
 
-        {/* STEP 2: COMBINED SUBMISSION DETAILS */}
-        {step === 2 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "2.5rem", animation: "modalFadeIn 0.3s ease" }}>
-            <SectionB
-              submissionType={formData.submissionType}
-              onChange={(type) => updateFormData({ submissionType: type })}
-              errors={errors}
-            />
-            {formData.submissionType === "activity_event" && (
-              <div style={{ animation: "modalFadeIn 0.3s ease", borderTop: "1px solid var(--border-color)", paddingTop: "2rem" }}>
-                <SectionC
-                  formData={formData}
-                  onChange={updateFormData}
-                  errors={errors}
-                />
-              </div>
-            )}
-            {formData.submissionType === "meeting" && (
-              <div style={{ animation: "modalFadeIn 0.3s ease", borderTop: "1px solid var(--border-color)", paddingTop: "2rem" }}>
-                <SectionD
-                  formData={formData}
-                  onChange={updateFormData}
-                  errors={errors}
-                />
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* STEP 3: PREVIEW */}
-        {step === 3 && <FormPreview formData={formData} />}
-
-        {/* STEP 4: SUCCESS SCREEN */}
-        {step === 4 && (
-          <div className="success-screen" id="form-submission-success" style={{ animation: "modalFadeIn 0.35s ease" }}>
-            <div className="success-icon" id="success-icon-symbol">✓</div>
-            <h3 className="success-title" style={{ marginBottom: "2rem" }}>Form Submitted Successfully!</h3>
-            <div className="success-buttons" style={{ justifyContent: "center" }}>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={handleReset}
-                id="btn-success-new"
-                style={{ padding: "0.75rem 2rem" }}
-              >
-                Submit New Response
-              </button>
-            </div>
-          </div>
-        )}
+    {step === 4 && (
+      <FormPreview formData={formData} />
+    )}
 
         {/* FOOTER BUTTONS FOR NAVIGATING THE STEPS */}
-        {step >= 1 && step <= 3 && (
+        {step >= 1 && step <= 4 && (
           <>
             {step === 2 && formData.submissionType && formData.documents && formData.documents.length > 0 && (
               <div className="uploaded-files-list" style={{ marginTop: "1.5rem", width: "100%" }}>
@@ -616,22 +620,34 @@ export default function Form() {
             )}
 
             <div className="btn-group" id="form-nav-buttons">
-              {step > 1 ? (
-                <button
-                  key={step === 3 ? "btn-edit-again" : "btn-back"}
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={handleBack}
-                  id="btn-nav-back"
-                >
-                  {step === 3 ? "Edit Again" : "← Back"}
-                </button>
-              ) : (
-                <div /> // Placeholder to push Next button to right
-              )}
+             <div style={{ display: "flex", gap: "0.75rem" }}>
+
+  {step === 2 && (
+    <button
+      type="button"
+      className="btn btn-secondary"
+      onClick={() => setStep(0)}
+    >
+      🏠 Home
+    </button>
+  )}
+
+  {step > 2 && (
+    <button
+      key={step === 3 ? "btn-edit-again" : "btn-back"}
+      type="button"
+      className="btn btn-secondary"
+      onClick={handleBack}
+      id="btn-nav-back"
+    >
+      ← Back
+    </button>
+  )}
+
+</div>
 
               <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
-                {step === 2 && formData.submissionType && (
+                {step === 3 && formData.submissionType && (
                   <>
                     <label
                       htmlFor="document-upload"
@@ -658,8 +674,21 @@ export default function Form() {
                     />
                   </>
                 )}
+                {stepError && (
+  <div
+    style={{
+      color: "#dc2626",
+      fontSize: "0.85rem",
+      fontWeight: 600,
+      marginBottom: "0.5rem",
+      textAlign: "right",
+    }}
+  >
+    ⚠ {stepError}
+  </div>
+)}
 
-                {step < 3 ? (
+                {step < 4 ? (
                   <button
                     key="btn-next"
                     type="button"
@@ -667,6 +696,7 @@ export default function Form() {
                     onClick={handleNext}
                     id="btn-nav-next"
                   >
+                    
                     Next →
                   </button>
                 ) : (
@@ -684,7 +714,49 @@ export default function Form() {
           </>
         )}
         </form>
-      )}
+)}
+
+{/* SUCCESS SCREEN */}
+{step === 5 && (
+  <div
+    className="success-screen"
+    style={{
+      textAlign: "center",
+      padding: "3rem",
+    }}
+  >
+    <div
+      style={{
+        fontSize: "4rem",
+        color: "green",
+        marginBottom: "1rem",
+      }}
+    >
+      ✓
+    </div>
+
+    <h2>Form Submitted Successfully!</h2>
+
+    <p style={{ marginTop: "1rem" }}>
+      Thank you. Your submission has been received.
+    </p>
+
+    <p>
+      Reference ID: <strong>{submittedId}</strong>
+    </p>
+
+    
+<button
+      type="button"
+      className="btn btn-primary"
+      onClick={handleReset}
+      style={{ marginTop: "1.5rem" }}
+    >
+      Submit Another Response
+    </button>
+  </div>
+)}
+      
     </div>
   );
 }

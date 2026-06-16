@@ -642,58 +642,72 @@ export default function HistoryList({ onLogout }: HistoryListProps = {}) {
     }
   }, [selectedItem]);
 
-  const handleSaveAdminChanges = async () => {
-    if (!selectedItem) return;
+ 
+  
 
-    if (isFirebaseConfigured && db) {
-      try {
-        let targetDocId = (selectedItem as any).docId;
-        if (!targetDocId) {
-          const q = query(collection(db, "submissions"), where("id", "==", selectedItem.id));
-          const snapshot = await getDocs(q);
-          if (!snapshot.empty) {
-            targetDocId = snapshot.docs[0].id;
-          }
-        }
-
-        if (targetDocId) {
-          const docRef = doc(db, "submissions", targetDocId);
-          await updateDoc(docRef, {
-            status: adminStatus,
-            adminFeedback: adminFeedback
-          });
-        } else {
-          throw new Error("Document ID not found in Firestore");
-        }
-
-        setSelectedItem({
-          ...selectedItem,
-          status: adminStatus,
-          adminFeedback: adminFeedback,
-        });
-        alert("Admin changes saved successfully to database!");
-      } catch (err) {
-        console.error("Failed to save admin changes to Firestore", err);
-        alert("Failed to save to database. Saving locally fallback...");
-        saveSubmissionsLocally();
-      }
-    } else {
-      saveSubmissionsLocally();
-    }
-  };
+  
 
   const saveSubmissionsLocally = () => {
-    if (!selectedItem) return;
-    const updatedSubmissions = submissions.map((item) => {
-      if (item.id === selectedItem.id) {
-        return {
-          ...item,
-          status: adminStatus,
-          adminFeedback: adminFeedback,
-        };
+  if (!selectedItem) return;
+
+  const updatedSubmissions = submissions.map((item) => {
+    if (item.id === selectedItem.id) {
+      return {
+        ...item,
+        status: adminStatus,
+        adminFeedback: adminFeedback,
+      };
+    }
+    return item;
+  });
+
+  setSubmissions(updatedSubmissions);
+
+  setSelectedItem({
+    ...selectedItem,
+    status: adminStatus,
+    adminFeedback: adminFeedback,
+  });
+};
+
+const handleSaveAdminChanges = async () => {
+    const handleSaveAdminChanges = async () => {
+  if (!selectedItem) return;
+
+  try {
+    let targetDocId = (selectedItem as any).docId;
+
+    if (!targetDocId) {
+      const q = query(
+        collection(db, "submissions"),
+        where("id", "==", selectedItem.id)
+      );
+
+      const snapshot = await getDocs(q);
+
+      if (!snapshot.empty) {
+        targetDocId = snapshot.docs[0].id;
       }
-      return item;
-    });
+    }
+
+    if (!targetDocId) {
+      throw new Error("Document ID not found");
+    }
+
+    await updateDoc(
+      doc(db, "submissions", targetDocId),
+      {
+        status: adminStatus,
+        adminFeedback: adminFeedback
+      }
+    );
+
+    alert("Admin changes saved successfully!");
+  } catch (error) {
+    console.error("Failed to save admin changes:", error);
+    alert("Failed to save admin changes.");
+  }
+};
 
     localStorage.setItem("pa_forms", JSON.stringify(updatedSubmissions));
     setSubmissions(updatedSubmissions);
@@ -1073,9 +1087,52 @@ export default function HistoryList({ onLogout }: HistoryListProps = {}) {
   };
 
   // Get unique filter choices from submissions
-  const countries = Array.from(new Set(submissions.map(item => item.countryName).filter(Boolean).sort()));
-  const catchmentAreas = Array.from(new Set(submissions.map(item => item.catchmentArea).filter(Boolean).sort()));
-  const communities = Array.from(new Set(submissions.map(item => item.communityName).filter(Boolean).sort()));
+  const countries = Array.from(
+  new Set(
+    submissions
+      .map(item =>
+        item.countryName?.trim().toLowerCase()
+      )
+      .filter(Boolean)
+  )
+)
+  .map(
+    country =>
+      country.charAt(0).toUpperCase() +
+      country.slice(1)
+  )
+  .sort();
+
+const catchmentAreas = Array.from(
+  new Set(
+    submissions
+      .filter(
+        item =>
+          !filterCountry ||
+          item.countryName?.trim().toLowerCase() ===
+          filterCountry.trim().toLowerCase()
+      )
+      .map(item => item.catchmentArea?.trim())
+      .filter(Boolean)
+  )
+).sort();
+
+const communities = Array.from(
+  new Set(
+    submissions
+      .filter(
+        item =>
+          (!filterCountry ||
+            item.countryName?.trim().toLowerCase() ===
+              filterCountry.trim().toLowerCase()) &&
+          (!filterCatchment ||
+            item.catchmentArea?.trim().toLowerCase() ===
+              filterCatchment.trim().toLowerCase())
+      )
+      .map(item => item.communityName?.trim())
+      .filter(Boolean)
+  )
+).sort();
 
   // Filter list
   const filteredSubmissions = submissions.filter((item) => {
@@ -1094,9 +1151,20 @@ export default function HistoryList({ onLogout }: HistoryListProps = {}) {
       id.includes(s) ||
       title.includes(s);
 
-    const matchesCountry = !filterCountry || item.countryName === filterCountry;
-    const matchesCatchment = !filterCatchment || item.catchmentArea === filterCatchment;
-    const matchesCommunity = !filterCommunity || item.communityName === filterCommunity;
+    const matchesCountry =
+  !filterCountry ||
+  (item.countryName || "").trim().toLowerCase() ===
+  filterCountry.trim().toLowerCase();
+
+const matchesCatchment =
+  !filterCatchment ||
+  (item.catchmentArea || "").trim().toLowerCase() ===
+  filterCatchment.trim().toLowerCase();
+
+const matchesCommunity =
+  !filterCommunity ||
+  (item.communityName || "").trim().toLowerCase() ===
+  filterCommunity.trim().toLowerCase();
     const matchesStatus = !filterStatus || (item.status || "pending") === filterStatus;
 
     return matchesSearch && matchesCountry && matchesCatchment && matchesCommunity && matchesStatus;
@@ -1109,7 +1177,20 @@ export default function HistoryList({ onLogout }: HistoryListProps = {}) {
     setFilterCommunity("");
     setFilterStatus("");
   };
+  const countryStats = submissions.reduce((acc, item) => {
+  const country =
+    (item.countryName || "Unknown")
+      .trim()
+      .toLowerCase();
 
+  if (!acc[country]) {
+    acc[country] = 0;
+  }
+
+  acc[country]++;
+
+  return acc;
+}, {} as Record<string, number>);
   if (selectedItem) {
     const title =
       selectedItem.submissionType === "activity_event"
@@ -1704,7 +1785,11 @@ export default function HistoryList({ onLogout }: HistoryListProps = {}) {
               </label>
               <select
                 value={filterCountry}
-                onChange={(e) => setFilterCountry(e.target.value)}
+                onChange={(e) => {
+  setFilterCountry(e.target.value);
+  setFilterCatchment("");
+  setFilterCommunity("");
+}}
                 className="form-select"
                 style={{ padding: "0.5rem", fontSize: "0.85rem" }}
               >
@@ -1712,6 +1797,7 @@ export default function HistoryList({ onLogout }: HistoryListProps = {}) {
                 {countries.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
+            
 
             <div className="form-group" style={{ margin: 0 }}>
               <label className="form-label" style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "0.25rem", display: "block" }}>
@@ -1719,7 +1805,10 @@ export default function HistoryList({ onLogout }: HistoryListProps = {}) {
               </label>
               <select
                 value={filterCatchment}
-                onChange={(e) => setFilterCatchment(e.target.value)}
+                onChange={(e) => {
+  setFilterCatchment(e.target.value);
+  setFilterCommunity("");
+}}
                 className="form-select"
                 style={{ padding: "0.5rem", fontSize: "0.85rem" }}
               >
@@ -1773,6 +1862,63 @@ export default function HistoryList({ onLogout }: HistoryListProps = {}) {
               </div>
             )}
           </div>
+          {/* Country Statistics */}
+<div
+  style={{
+    marginTop: "1rem",
+    marginBottom: "1.5rem",
+    padding: "1rem",
+    backgroundColor: "#f7fafc",
+    border: "1px solid var(--border-color)",
+    borderRadius: "var(--border-radius-md)"
+  }}
+>
+  <h3
+    style={{
+      marginBottom: "1rem",
+      color: "var(--pa-navy)",
+      fontSize: "1rem"
+    }}
+  >
+    📊 Submission Count by Country
+  </h3>
+
+  <div
+    style={{
+      display: "flex",
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: "1rem"
+    }}
+  >
+    {Object.entries(countryStats).map(([country, count]) => (
+      <div
+        key={country}
+        style={{
+          padding: "0.75rem 1rem",
+          backgroundColor: "#ffffff",
+          border: "1px solid var(--border-color)",
+          borderRadius: "8px",
+          minWidth: "120px"
+        }}
+      >
+        <div style={{ fontWeight: 600 }}>
+          {country}
+        </div>
+
+        <div
+          style={{
+            color: "var(--pa-blue)",
+            fontSize: "1.2rem",
+            fontWeight: 700
+          }}
+        >
+          {count}
+        </div>
+      </div>
+    ))}
+  </div>
+</div>
         </div>
       )}
 
@@ -1839,23 +1985,55 @@ export default function HistoryList({ onLogout }: HistoryListProps = {}) {
                 </div>
                 <div className="history-card-body">
                   <div className="history-meta-info">
-                    <div className="history-meta-item">
-                      <span className="history-meta-label">Community</span>
-                      <span className="history-meta-value">{item.communityName}</span>
-                    </div>
-                    <div className="history-meta-item">
-                      <span className="history-meta-label">Providing Leader</span>
-                      <span className="history-meta-value">{item.leaderName}</span>
-                    </div>
-                    {programInfo && (
-                      <div className="history-meta-item" style={{ maxWidth: "250px" }}>
-                        <span className="history-meta-label">Program</span>
-                        <span className="history-meta-value" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {programInfo}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+
+  <div className="history-meta-item">
+    <span className="history-meta-label">Country</span>
+    <span className="history-meta-value">
+      {item.countryName || "-"}
+    </span>
+  </div>
+
+  <div className="history-meta-item">
+    <span className="history-meta-label">Catchment Area</span>
+    <span className="history-meta-value">
+      {item.catchmentArea || "-"}
+    </span>
+  </div>
+
+  <div className="history-meta-item">
+    <span className="history-meta-label">Community</span>
+    <span className="history-meta-value">
+      {item.communityName || "-"}
+    </span>
+  </div>
+
+  <div className="history-meta-item">
+    <span className="history-meta-label">Providing Leader</span>
+    <span className="history-meta-value">
+      {item.leaderName || "-"}
+    </span>
+  </div>
+
+  {programInfo && (
+    <div
+      className="history-meta-item"
+      style={{ maxWidth: "250px" }}
+    >
+      <span className="history-meta-label">Program</span>
+      <span
+        className="history-meta-value"
+        style={{
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap"
+        }}
+      >
+        {programInfo}
+      </span>
+    </div>
+  )}
+
+</div>
                   <div style={{ display: "flex", gap: "0.5rem" }}>
                     <button
                       className="btn btn-secondary"

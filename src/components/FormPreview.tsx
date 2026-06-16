@@ -20,7 +20,7 @@ export default function FormPreview({ formData, isSubmitted = false }: FormPrevi
             Review & Verify Details
           </h3>
           <p style={{ color: "var(--text-muted)", marginBottom: "2rem", fontSize: "0.95rem" }}>
-            Please review all the information below before clicking final Submit. If you need to make changes, you can click "Edit Again".
+            Please review all the information below before clicking Final Submit. If you need to make changes, you can click "Back".
           </p>
         </>
       )}

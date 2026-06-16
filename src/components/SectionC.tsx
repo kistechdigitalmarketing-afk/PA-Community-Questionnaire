@@ -15,12 +15,12 @@ const getReportingLabelAndHelper = (type: string) => {
     case "Facilitators":
       return {
         label: "Identify the Facilitators and Explain Their Role",
-        helper: "(Specify who the facilitators were and how they guided the session...)",
+        helper: "(Specify who the facilitators were and how they were utilized...)",
       };
     case "Funds":
       return {
         label: "Explain the Funds and How They Were Spent",
-        helper: "(Detail the amount of money spent and how it was allocated...)",
+        helper: "(Detail the amount of money spent and how it was used...)",
       };
     case "Equipment":
       return {
@@ -41,12 +41,12 @@ const getPlanningLabelAndHelper = (type: string) => {
     case "Facilitators":
       return {
         label: "Identify the Facilitators Needed and Explain Their Role",
-        helper: "(Specify who the facilitators will be and how they will guide the session...)",
+        helper: "(Specify who the facilitators will be and how they will be utilized...)",
       };
     case "Funds":
       return {
         label: "Explain the Funds Needed and How They Will be Spent",
-        helper: "(Detail the amount of money needed and how it will be allocated...)",
+        helper: "(Detail the amount of money needed and how it will be used...)",
       };
     case "Equipment":
       return {
@@ -93,8 +93,44 @@ export default function SectionC({ formData, onChange, errors }: SectionCProps) 
   };
 
   const handleSubtypeChange = (subtype: ActivitySubtype) => {
-    onChange({ activitySubtype: subtype });
-  };
+  onChange({
+    activitySubtype: subtype,
+
+    ...(subtype === "planning"
+      ? {
+          reportingDetails: {
+            whatWhyHow: "",
+            outcomes: "",
+            nextSteps: "",
+            participants: [""],
+            resourcesUtilized: {
+              types: [],
+              descriptions: {},
+              description: "",
+              providersMap: {},
+              providers: [],
+              providerSpecifyOthers: {},
+              providerSpecifyOther: "",
+            },
+          },
+        }
+      : {
+          planningDetails: {
+            whatWhyHow: "",
+            expectedOutcomes: "",
+            resourcesNeeded: {
+              types: [],
+              descriptions: {},
+              description: "",
+              acquisitionMethodsMap: {},
+              acquisitionMethods: [],
+              acquisitionSpecifyOthers: {},
+              acquisitionSpecifyOther: "",
+            },
+          },
+        }),
+  });
+};
 
   // Activity Type Selection (Single Select)
   const handleActivityTypeSelect = (type: string) => {
@@ -452,33 +488,7 @@ export default function SectionC({ formData, onChange, errors }: SectionCProps) 
     <div id="section-c-container">
 
       <div className="form-grid" style={{ marginBottom: "2rem" }}>
-        {/* Activity Subtype Choice */}
-        <div className="form-group full-width">
-          <label className="form-label">
-            Select Activity Action <span className="required-dot">*</span>
-          </label>
-          {errors.activitySubtype && <span className="form-error-msg" style={{ marginBottom: "0.5rem" }}>{errors.activitySubtype}</span>}
-          <div style={{ display: "flex", gap: "1rem", marginTop: "0.25rem" }}>
-            <button
-              type="button"
-              className={`btn ${formData.activitySubtype === "planning" ? "btn-primary" : "btn-secondary"}`}
-              style={{ flex: 1, padding: "0.6rem" }}
-              onClick={() => handleSubtypeChange("planning")}
-              id="btn-subtype-planning"
-            >
-              📅 Planning an Activity/Event
-            </button>
-            <button
-              type="button"
-              className={`btn ${formData.activitySubtype === "reporting" ? "btn-primary" : "btn-secondary"}`}
-              style={{ flex: 1, padding: "0.6rem" }}
-              onClick={() => handleSubtypeChange("reporting")}
-              id="btn-subtype-reporting"
-            >
-              📝 Reporting an Activity/Event (Already Happened)
-            </button>
-          </div>
-        </div>
+       
 
         {/* Title of the Activity/Event */}
         <div className={`form-group full-width ${errors.activityTitle ? "error" : ""}`} style={{ marginTop: "0.5rem" }}>
@@ -594,7 +604,7 @@ export default function SectionC({ formData, onChange, errors }: SectionCProps) 
               <label className="form-label" htmlFor="repWhatWhyHow">
                 1. Explain what you did, why, and how <span className="required-dot">*</span>
                 <span style={{ textTransform: "none", fontWeight: "normal", color: "var(--text-muted)", fontSize: "0.8rem", display: "block", marginTop: "0.2rem" }}>
-                  (Give a detailed summary of the event activities, the goal/reason, and the execution process...)
+                  (Give a detailed summary of the event or activities, the goal/reason, and the execution process...)
                 </span>
               </label>
               <textarea
@@ -752,7 +762,7 @@ export default function SectionC({ formData, onChange, errors }: SectionCProps) 
               {/* Resource Description Explanation */}
               {formData.reportingDetails.resourcesUtilized.types.length === 0 ? (
                 <div style={{ padding: "0.75rem", border: "1.5px dashed var(--border-color)", borderRadius: "var(--border-radius-md)", color: "var(--text-muted)", fontSize: "0.9rem", marginBottom: "1rem" }}>
-                  Please select one or more Resource Types above to explain how they were used.
+                  Please select one or more Resource Types above and explain how they were used.
                 </div>
               ) : (
                 formData.reportingDetails.resourcesUtilized.types.map((type) => {
@@ -863,7 +873,7 @@ export default function SectionC({ formData, onChange, errors }: SectionCProps) 
               <label className="form-label" htmlFor="planWhatWhyHow">
                 1. Explain what you plan to do, why, and how <span className="required-dot">*</span>
                 <span style={{ textTransform: "none", fontWeight: "normal", color: "var(--text-muted)", fontSize: "0.8rem", display: "block", marginTop: "0.2rem" }}>
-                  (Give a detailed plan of what the upcoming event will involve, its objectives, and the implementation plan...)
+                  (Give a detailed plan of upcoming event highlighting it's objective...)
                 </span>
               </label>
               <textarea
@@ -926,7 +936,7 @@ export default function SectionC({ formData, onChange, errors }: SectionCProps) 
               {/* Resource Needed Explanation */}
               {formData.planningDetails.resourcesNeeded.types.length === 0 ? (
                 <div style={{ padding: "0.75rem", border: "1.5px dashed var(--border-color)", borderRadius: "var(--border-radius-md)", color: "var(--text-muted)", fontSize: "0.9rem", marginBottom: "1rem" }}>
-                  Please select one or more Resource Types above to explain how they will be used.
+                  Please select one or more Resource Types above and explain how they will be used.
                 </div>
               ) : (
                 formData.planningDetails.resourcesNeeded.types.map((type) => {

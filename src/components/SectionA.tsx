@@ -75,7 +75,7 @@ export default function SectionA({ formData, onChange, errors }: SectionAProps) 
         {/* CMC */}
         <div className={`form-group ${errors.cmc ? "error" : ""}`}>
           <label className="form-label" htmlFor="cmc">
-            CMC <span className="required-dot">*</span>
+            NAME OF CMC <span className="required-dot">*</span>
 
           </label>
           <input
