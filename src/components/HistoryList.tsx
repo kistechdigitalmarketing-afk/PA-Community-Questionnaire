@@ -642,36 +642,10 @@ export default function HistoryList({ onLogout }: HistoryListProps = {}) {
     }
   }, [selectedItem]);
 
- 
-  
-
-  
-
-  const saveSubmissionsLocally = () => {
-  if (!selectedItem) return;
-
-  const updatedSubmissions = submissions.map((item) => {
-    if (item.id === selectedItem.id) {
-      return {
-        ...item,
-        status: adminStatus,
-        adminFeedback: adminFeedback,
-      };
-    }
-    return item;
-  });
-
-  setSubmissions(updatedSubmissions);
-
-  setSelectedItem({
-    ...selectedItem,
-    status: adminStatus,
-    adminFeedback: adminFeedback,
-  });
-};
 
 const handleSaveAdminChanges = async () => {
-    const handleSaveAdminChanges = async () => {
+  console.log("db =", db);
+  console.log("isFirebaseConfigured =", isFirebaseConfigured);
   if (!selectedItem) return;
 
   try {
@@ -698,26 +672,39 @@ const handleSaveAdminChanges = async () => {
       doc(db, "submissions", targetDocId),
       {
         status: adminStatus,
-        adminFeedback: adminFeedback
+        adminFeedback: adminFeedback,
       }
     );
 
-    alert("Admin changes saved successfully!");
-  } catch (error) {
-    console.error("Failed to save admin changes:", error);
-    alert("Failed to save admin changes.");
-  }
-};
+    const updatedSubmissions = submissions.map((item) =>
+      item.id === selectedItem.id
+        ? {
+            ...item,
+            status: adminStatus,
+            adminFeedback: adminFeedback,
+          }
+        : item
+    );
 
-    localStorage.setItem("pa_forms", JSON.stringify(updatedSubmissions));
     setSubmissions(updatedSubmissions);
+
     setSelectedItem({
       ...selectedItem,
       status: adminStatus,
       adminFeedback: adminFeedback,
     });
+
     alert("Admin changes saved successfully!");
-  };
+  } catch (error: any) {
+  console.error("Failed to save admin changes:", error);
+
+  alert(
+    "Failed to save admin changes:\n\n" +
+    (error?.message || JSON.stringify(error))
+  );
+}
+};
+
 
   const getStatusBadge = (status: string = "pending") => {
     let text = "Pending";
@@ -1301,51 +1288,7 @@ const matchesCommunity =
               borderRadius: "var(--border-radius-md)",
               border: "1.5px solid var(--border-color)"
             }}>
-              <h3 style={{ borderBottom: "1.5px solid var(--border-color)", paddingBottom: "0.4rem", color: "var(--pa-navy)", fontSize: "1.15rem", marginBottom: "1rem" }}>
-                Admin Review & Feedback
-              </h3>
-              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label" style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "0.25rem", display: "block" }}>
-                    Submission Status
-                  </label>
-                  <select
-                    value={adminStatus}
-                    onChange={(e) => setAdminStatus(e.target.value as any)}
-                    className="form-select"
-                    style={{ padding: "0.6rem", fontSize: "0.9rem" }}
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="review">In Review</option>
-                    <option value="completed">Completed</option>
-                  </select>
-                </div>
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label" style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "0.25rem", display: "block" }}>
-                    Feedback / Comments
-                  </label>
-                  <textarea
-                    value={adminFeedback}
-                    onChange={(e) => setAdminFeedback(e.target.value)}
-                    placeholder="Add administrative feedback or comments here..."
-                    className="form-textarea"
-                    style={{ minHeight: "100px", fontSize: "0.9rem", padding: "0.6rem" }}
-                  />
-                </div>
-              </div>
-              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1rem" }}>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={handleSaveAdminChanges}
-                  style={{ padding: "0.5rem 1.25rem", fontSize: "0.875rem" }}
-                  id="btn-detail-save-admin"
-                >
-                  💾 Save Admin Changes
-                </button>
-              </div>
-            </div>
-
+              
             {/* Community & Leader Information */}
             <div>
               <h3 style={{ borderBottom: "1.5px solid var(--border-color)", paddingBottom: "0.4rem", color: "var(--pa-navy)", fontSize: "1.15rem", marginBottom: "1rem" }}>
@@ -1712,6 +1655,51 @@ const matchesCommunity =
                 </div>
               </div>
             )}
+            <h3 style={{ borderBottom: "1.5px solid var(--border-color)", paddingBottom: "0.4rem", color: "var(--pa-navy)", fontSize: "1.15rem", marginBottom: "1rem" }}>
+                Admin Review & Feedback
+              </h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "0.25rem", display: "block" }}>
+                    Submission Status
+                  </label>
+                  <select
+                    value={adminStatus}
+                    onChange={(e) => setAdminStatus(e.target.value as any)}
+                    className="form-select"
+                    style={{ padding: "0.6rem", fontSize: "0.9rem" }}
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="review">In Review</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "0.25rem", display: "block" }}>
+                    Feedback / Comments
+                  </label>
+                  <textarea
+                    value={adminFeedback}
+                    onChange={(e) => setAdminFeedback(e.target.value)}
+                    placeholder="Add administrative feedback or comments here..."
+                    className="form-textarea"
+                    style={{ minHeight: "100px", fontSize: "0.9rem", padding: "0.6rem" }}
+                  />
+                </div>
+              </div>
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1rem" }}>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleSaveAdminChanges}
+                  style={{ padding: "0.5rem 1.25rem", fontSize: "0.875rem" }}
+                  id="btn-detail-save-admin"
+                >
+                  💾 Save Admin Changes
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
@@ -1881,43 +1869,96 @@ const matchesCommunity =
     }}
   >
     📊 Submission Count by Country
+    <div
+  style={{
+    marginBottom: "0.75rem",
+    fontSize: "0.9rem",
+    fontWeight: 600,
+    color: "var(--pa-navy)"
+  }}
+>
+  Total Countries: {Object.keys(countryStats).length}
+  {" • "}
+  Total Submissions: {submissions.length}
+</div>
   </h3>
 
-  <div
+ <div
+  style={{
+    maxHeight: "250px",
+    overflowY: "auto",
+    border: "1px solid var(--border-color)",
+    borderRadius: "8px",
+    backgroundColor: "#fff"
+  }}
+>
+  <table
     style={{
-      display: "flex",
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: "1rem"
+      width: "100%",
+      borderCollapse: "collapse"
     }}
   >
-    {Object.entries(countryStats).map(([country, count]) => (
-      <div
-        key={country}
+    <thead>
+      <tr
         style={{
-          padding: "0.75rem 1rem",
-          backgroundColor: "#ffffff",
-          border: "1px solid var(--border-color)",
-          borderRadius: "8px",
-          minWidth: "120px"
+          backgroundColor: "#f7fafc",
+          borderBottom: "1px solid var(--border-color)"
         }}
       >
-        <div style={{ fontWeight: 600 }}>
-          {country}
-        </div>
-
-        <div
+        <th
           style={{
-            color: "var(--pa-blue)",
-            fontSize: "1.2rem",
-            fontWeight: 700
+            textAlign: "left",
+            padding: "0.75rem"
           }}
         >
-          {count}
-        </div>
-      </div>
-    ))}
-  </div>
+          Country
+        </th>
+
+        <th
+  style={{
+    textAlign: "center",
+    width: "140px",
+    padding: "0.75rem"
+  }}
+>
+          Submissions
+        </th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {Object.entries(countryStats)
+  .sort((a, b) => b[1] - a[1])
+  .map(([country, count]) => (
+        <tr
+          key={country}
+          style={{
+            borderBottom: "1px solid #eee"
+          }}
+        >
+          <td
+            style={{
+              padding: "0.75rem"
+            }}
+          >
+            {country}
+          </td>
+
+          <td
+            style={{
+              padding: "0.75rem",
+              textAlign: "center",
+              fontWeight: 700,
+              color: "var(--pa-blue)"
+            }}
+          >
+            {count}
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
 </div>
         </div>
       )}

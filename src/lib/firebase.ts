@@ -38,5 +38,6 @@ if (isFirebaseConfigured) {
     );
   }
 }
-
+console.log("isFirebaseConfigured =", isFirebaseConfigured);
+console.log("db =", db);
 export { auth, db, isFirebaseConfigured };
