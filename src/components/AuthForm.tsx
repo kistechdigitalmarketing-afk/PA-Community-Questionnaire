@@ -27,27 +27,7 @@ export default function AuthForm({ onLoginSuccess }: AuthFormProps) {
     }
 
     // 1. Firebase authentication path if configured
-    if (isFirebaseConfigured && auth) {
-      try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        setSuccess("Logged in successfully via Firebase! Redirecting...");
-        setTimeout(() => {
-          onLoginSuccess(userCredential.user.email || email);
-        }, 1000);
-      } catch (err: any) {
-        console.error("Firebase Sign In Error:", err);
-        let msg = "Invalid email or password. Please try again.";
-        if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password" || err.code === "auth/user-not-found") {
-          msg = "Invalid email or password. Please check your credentials.";
-        } else if (err.code === "auth/invalid-email") {
-          msg = "Please enter a valid email address.";
-        } else if (err.code === "auth/too-many-requests") {
-          msg = "Too many failed login attempts. Access has been temporarily disabled. Please try again later.";
-        }
-        setError(msg);
-      }
-      return;
-    }
+    
 
     // 2. Fallback local storage simulation path
     const defaultAdminEmail = "test@example.com";

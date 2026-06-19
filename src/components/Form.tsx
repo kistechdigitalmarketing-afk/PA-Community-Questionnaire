@@ -386,20 +386,61 @@ return true;
         setStep(5);
       }
     } else {
-      saveLocally(finalData);
-      setSubmittedId(submissionId);
-      setStep(5); // Success state
-    }
+  try {
+    await fetch(
+      "https://script.google.com/macros/s/AKfycbwvsOW7DxWV3eQ0ALqJTqkpoU9s2J3bMEVKRmV1azI9QWLG2KUUzvlCbb4twRgRQEhccQ/exec",
+      {
+        method: "POST",
+        body: JSON.stringify(finalData),
+      }
+    );
+
+    setSubmittedId(submissionId);
+    setStep(5);
+  } catch (err) {
+    console.error("Google Sheet save failed", err);
+
+    saveLocally(finalData);
+    setSubmittedId(submissionId);
+    setStep(5);
+  }
+}
   };
 
   const handleReset = () => {
-    setFormData(INITIAL_FORM_STATE);
-    setErrors({});
-    setStep(0);
-  };
+  setFormData(INITIAL_FORM_STATE);
+  setErrors({});
+  setStep(0);
+};
 
-  // Stepper UI helper
-  const renderStepper = () => {
+const handleAutoNumbering = (
+  value: string,
+  setter: (value: string) => void,
+  e: React.KeyboardEvent<HTMLTextAreaElement>
+) => {
+  if (e.key !== "Enter") return;
+
+  e.preventDefault();
+
+  const lines = value
+    .split("\n")
+    .filter((line) => line.trim() !== "");
+
+  const numberedLines = lines.map((line, index) =>
+    /^\d+\./.test(line.trim())
+      ? line
+      : `${index + 1}. ${line}`
+  );
+
+  const nextNumber = numberedLines.length + 1;
+
+  setter(
+    [...numberedLines, `${nextNumber}. `].join("\n")
+  );
+};
+
+// Stepper UI helper
+const renderStepper = () => {
     if (step === 0 || step > 3) return null; // Hide stepper on instructions or success screen
     
     const stepsInfo = [
@@ -672,6 +713,54 @@ return true;
                       style={{ display: "none" }}
                       onChange={handleFileUpload}
                     />
+                    {/* Uploaded Documents Preview */}
+{formData.documents && formData.documents.length > 0 && (
+  <div
+    style={{
+      display: "flex",
+      flexWrap: "wrap",
+      gap: "0.5rem",
+      marginLeft: "0.75rem",
+      maxWidth: "500px",
+    }}
+  >
+    {formData.documents.map((file, index) => (
+      <div
+        key={index}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "0.5rem",
+          padding: "0.4rem 0.75rem",
+          border: "1px solid #d1d5db",
+          borderRadius: "999px",
+          background: "#f8fafc",
+          fontSize: "0.85rem",
+        }}
+      >
+        <span>
+  📄 {file.name} ({(file.size / 1024).toFixed(0)} KB)
+</span>
+
+        <button
+          type="button"
+          onClick={() => handleRemoveFile(index)}
+          style={{
+            border: "none",
+            background: "transparent",
+            cursor: "pointer",
+            color: "#dc2626",
+            fontWeight: "bold",
+            fontSize: "0.9rem",
+          }}
+          title="Remove file"
+        >
+          ✕
+        </button>
+      </div>
+    ))}
+  </div>
+)}
                   </>
                 )}
                 {stepError && (

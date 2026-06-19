@@ -94,14 +94,19 @@ export default function SectionA({ formData, onChange, errors }: SectionAProps) 
           <label className="form-label" htmlFor="dateEstablished">
             Date Established <span className="required-dot">*</span>
           </label>
-          <input
-            type="date"
-            id="dateEstablished"
-            name="dateEstablished"
-            value={formData.dateEstablished}
-            onChange={handleChange}
-            className="form-input"
-          />
+         <input
+  type="date"
+  id="dateEstablished"
+  name="dateEstablished"
+  value={formData.dateEstablished}
+  onChange={handleChange}
+  className="form-input"
+  style={{
+    minHeight: "52px",
+    fontSize: "1rem",
+    padding: "0.75rem 1rem"
+  }}
+/>
           {errors.dateEstablished && (
             <span className="form-error-msg">{errors.dateEstablished}</span>
           )}

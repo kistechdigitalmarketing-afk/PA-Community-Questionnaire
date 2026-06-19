@@ -631,8 +631,10 @@ export default function HistoryList({ onLogout }: HistoryListProps = {}) {
   const [filterStatus, setFilterStatus] = useState("");
 
   // Admin Change State
-  const [adminStatus, setAdminStatus] = useState<"pending" | "review" | "completed">("pending");
-  const [adminFeedback, setAdminFeedback] = useState("");
+const [adminStatus, setAdminStatus] = useState<"pending" | "review" | "completed">("pending");
+const [adminFeedback, setAdminFeedback] = useState("");
+
+const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
   // Initialize admin change state when details modal opens
   useEffect(() => {
@@ -644,66 +646,34 @@ export default function HistoryList({ onLogout }: HistoryListProps = {}) {
 
 
 const handleSaveAdminChanges = async () => {
-  console.log("db =", db);
-  console.log("isFirebaseConfigured =", isFirebaseConfigured);
-  if (!selectedItem) return;
+if (!selectedItem) return;
 
-  try {
-    let targetDocId = (selectedItem as any).docId;
-
-    if (!targetDocId) {
-      const q = query(
-        collection(db, "submissions"),
-        where("id", "==", selectedItem.id)
-      );
-
-      const snapshot = await getDocs(q);
-
-      if (!snapshot.empty) {
-        targetDocId = snapshot.docs[0].id;
-      }
-    }
-
-    if (!targetDocId) {
-      throw new Error("Document ID not found");
-    }
-
-    await updateDoc(
-      doc(db, "submissions", targetDocId),
-      {
-        status: adminStatus,
-        adminFeedback: adminFeedback,
-      }
-    );
-
-    const updatedSubmissions = submissions.map((item) =>
-      item.id === selectedItem.id
-        ? {
-            ...item,
-            status: adminStatus,
-            adminFeedback: adminFeedback,
-          }
-        : item
-    );
-
-    setSubmissions(updatedSubmissions);
-
-    setSelectedItem({
-      ...selectedItem,
-      status: adminStatus,
-      adminFeedback: adminFeedback,
-    });
-
-    alert("Admin changes saved successfully!");
-  } catch (error: any) {
-  console.error("Failed to save admin changes:", error);
-
-  alert(
-    "Failed to save admin changes:\n\n" +
-    (error?.message || JSON.stringify(error))
-  );
+const updatedSubmissions = submissions.map((item) =>
+item.id === selectedItem.id
+? {
+...item,
+status: adminStatus,
+adminFeedback: adminFeedback,
 }
+: item
+);
+
+setSubmissions(updatedSubmissions);
+
+localStorage.setItem(
+"pa_forms",
+JSON.stringify(updatedSubmissions)
+);
+
+setSelectedItem({
+...selectedItem,
+status: adminStatus,
+adminFeedback: adminFeedback,
+});
+
+alert("Admin changes saved successfully!");
 };
+  
 
 
   const getStatusBadge = (status: string = "pending") => {
@@ -830,6 +800,37 @@ const handleSaveAdminChanges = async () => {
       setSelectedItem(null);
     }
   };
+  const handleDeleteSelected = async () => {
+  if (selectedItems.length === 0) return;
+
+  if (
+    !confirm(
+      `Are you sure you want to delete ${selectedItems.length} submission(s)?`
+    )
+  ) {
+    return;
+  }
+
+  try {
+    const updatedSubmissions = submissions.filter(
+      (item) => !selectedItems.includes(item.id || "")
+    );
+
+    setSubmissions(updatedSubmissions);
+
+    localStorage.setItem(
+      "pa_form_submissions",
+      JSON.stringify(updatedSubmissions)
+    );
+
+    setSelectedItems([]);
+
+    alert("Selected submissions deleted successfully.");
+  } catch (error) {
+    console.error(error);
+    alert("Failed to delete selected submissions.");
+  }
+};
 
   const deleteLocally = (id: string) => {
     const updated = submissions.filter((item) => item.id !== id);
@@ -1294,36 +1295,153 @@ const matchesCommunity =
               <h3 style={{ borderBottom: "1.5px solid var(--border-color)", paddingBottom: "0.4rem", color: "var(--pa-navy)", fontSize: "1.15rem", marginBottom: "1rem" }}>
                 Community & Leader Information
               </h3>
-              <div className="preview-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
-                <div className="preview-item">
-                  <span className="preview-label">Country Name</span>
-                  <span className="preview-val">{selectedItem.countryName}</span>
-                </div>
-                <div className="preview-item">
+             <div
+  className="preview-grid"
+  style={{
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "1rem 2rem",
+    marginTop: "1rem"
+  }}
+>
+                <div
+  className="preview-item"
+  style={{
+    background: "#f8fafc",
+    border: "1px solid #e2e8f0",
+    borderRadius: "8px",
+    padding: "0.75rem",
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.35rem"
+  }}
+>
+  <span
+    className="preview-label"
+    style={{
+      fontSize: "0.7rem",
+      fontWeight: 700,
+      color: "#64748b",
+      textTransform: "uppercase",
+      letterSpacing: "0.5px"
+    }}
+  >
+    Country Name
+  </span>
+
+  <span
+    className="preview-val"
+    style={{
+      fontSize: "0.95rem",
+      fontWeight: 600,
+      color: "#1e293b"
+    }}
+  >
+    {selectedItem.countryName}
+  </span>
+</div>
+                <div
+  className="preview-item"
+  style={{
+    background: "#f8fafc",
+    border: "1px solid #e2e8f0",
+    borderRadius: "8px",
+    padding: "0.75rem",
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.35rem"
+  }}
+>
                   <span className="preview-label">Catchment Area</span>
                   <span className="preview-val">{selectedItem.catchmentArea}</span>
                 </div>
-                <div className="preview-item">
+              <div
+  className="preview-item"
+  style={{
+    background: "#f8fafc",
+    border: "1px solid #e2e8f0",
+    borderRadius: "8px",
+    padding: "0.75rem",
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.35rem"
+  }}
+>
                   <span className="preview-label">Community Name</span>
                   <span className="preview-val">{selectedItem.communityName}</span>
                 </div>
-                <div className="preview-item">
+               <div
+  className="preview-item"
+  style={{
+    background: "#f8fafc",
+    border: "1px solid #e2e8f0",
+    borderRadius: "8px",
+    padding: "0.75rem",
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.35rem"
+  }}
+>
                   <span className="preview-label">CMC</span>
                   <span className="preview-val">{selectedItem.cmc}</span>
                 </div>
-                <div className="preview-item">
+               <div
+  className="preview-item"
+  style={{
+    background: "#f8fafc",
+    border: "1px solid #e2e8f0",
+    borderRadius: "8px",
+    padding: "0.75rem",
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.35rem"
+  }}
+>
                   <span className="preview-label">Date Established</span>
                   <span className="preview-val">{selectedItem.dateEstablished}</span>
                 </div>
-                <div className="preview-item">
+               <div
+  className="preview-item"
+  style={{
+    background: "#f8fafc",
+    border: "1px solid #e2e8f0",
+    borderRadius: "8px",
+    padding: "0.75rem",
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.35rem"
+  }}
+>
                   <span className="preview-label">Number of Shalom Leaders</span>
                   <span className="preview-val">{selectedItem.shalomLeadersCount}</span>
                 </div>
-                <div className="preview-item">
+               <div
+  className="preview-item"
+  style={{
+    background: "#f8fafc",
+    border: "1px solid #e2e8f0",
+    borderRadius: "8px",
+    padding: "0.75rem",
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.35rem"
+  }}
+>
                   <span className="preview-label">Leader Providing Information</span>
                   <span className="preview-val">{selectedItem.leaderName}</span>
                 </div>
-                <div className="preview-item" style={{ gridColumn: "span 2" }}>
+               <div
+  className="preview-item"
+  style={{
+    background: "#f8fafc",
+    border: "1px solid #e2e8f0",
+    borderRadius: "8px",
+    padding: "0.75rem",
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.35rem"
+  }}
+>
                   <span className="preview-label">Phone Number</span>
                   <span className="preview-val">{selectedItem.contactInfo}</span>
                 </div>
@@ -1331,37 +1449,155 @@ const matchesCommunity =
             </div>
 
             {/* Submission-Specific Fields */}
-            {selectedItem.submissionType === "activity_event" && (
-              <div>
+           {selectedItem.submissionType === "activity_event" && (
+  <div
+    style={{
+      background: "#f8fafc",
+      border: "1px solid #e2e8f0",
+      borderRadius: "10px",
+      padding: "1rem",
+      marginTop: "1.5rem"
+    }}
+  >
                 <h3 style={{ borderBottom: "1.5px solid var(--border-color)", paddingBottom: "0.4rem", color: "var(--pa-navy)", fontSize: "1.15rem", marginBottom: "1rem" }}>
                   Activity / Event Details
                 </h3>
-                <div className="preview-grid" style={{ marginBottom: "1.5rem" }}>
-                  <div className="preview-item">
-                    <span className="preview-label">Program Name</span>
-                    <span className="preview-val">{programInfo}</span>
-                  </div>
-                  <div className="preview-item">
-                    <span className="preview-label">Program Pillar & Project (PPP)</span>
-                    <span className="preview-val">{selectedItem.pppSelected}</span>
-                  </div>
-                  <div className="preview-item" style={{ gridColumn: "span 2" }}>
-                    <span className="preview-label">Activity Type(s)</span>
-                    <span className="preview-val">{selectedItem.activityTypesSelected.join(", ")}</span>
-                  </div>
-                </div>
+                <div
+  style={{
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "1rem",
+    marginBottom: "1.5rem"
+  }}
+>
+  <div
+  style={{
+    background: "white",
+    border: "1px solid #e2e8f0",
+    borderRadius: "8px",
+    padding: "0.75rem",
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.35rem"
+  }}
+>
+  <span className="preview-label">
+    Program Name
+  </span>
+
+  <span
+    className="preview-val"
+    style={{
+      fontWeight: 600,
+      color: "#1e293b"
+    }}
+  >
+    {programInfo}
+  </span>
+</div>
+
+ <div
+  style={{
+    background: "white",
+    border: "1px solid #e2e8f0",
+    borderRadius: "8px",
+    padding: "0.75rem",
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.35rem"
+  }}
+>
+  <span className="preview-label">
+    Program Pillar & Project (PPP)
+  </span>
+
+  <span
+    className="preview-val"
+    style={{
+      fontWeight: 600,
+      color: "#1e293b"
+    }}
+  >
+    {selectedItem.pppSelected}
+  </span>
+</div>
+
+ <div
+  style={{
+    gridColumn: "span 2",
+    background: "white",
+    border: "1px solid #e2e8f0",
+    borderRadius: "8px",
+    padding: "0.75rem",
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.35rem"
+  }}
+>
+  <span className="preview-label">
+    Activity Type(s)
+  </span>
+
+  <span
+    className="preview-val"
+    style={{
+      fontWeight: 600,
+      color: "#1e293b"
+    }}
+  >
+    {selectedItem.activityTypesSelected.join(", ")}
+  </span>
+</div>
+</div>
 
                 {selectedItem.activitySubtype === "reporting" && (
                   <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-                    <div className="preview-item">
+                    <div
+  style={{
+    background: "white",
+    border: "1px solid #e2e8f0",
+    borderRadius: "8px",
+    padding: "0.75rem"
+  }}
+>
                       <span className="preview-label">What was done, why, and how</span>
-                      <div className="preview-textarea-val">{selectedItem.reportingDetails.whatWhyHow}</div>
+                      <div
+  className="preview-textarea-val"
+  style={{
+    fontWeight: 600,
+    color: "#1e293b"
+  }}
+>
+  {selectedItem.reportingDetails.whatWhyHow}
+</div>
                     </div>
-                    <div className="preview-item">
+                    <div
+  style={{
+    background: "white",
+    border: "1px solid #e2e8f0",
+    borderRadius: "8px",
+    padding: "0.75rem"
+  }}
+>
                       <span className="preview-label">Outcomes (What was achieved)</span>
-                      <div className="preview-textarea-val">{selectedItem.reportingDetails.outcomes}</div>
+                      <div
+  className="preview-textarea-val"
+  style={{
+    fontWeight: 600,
+    color: "#1e293b"
+  }}
+>
+  {selectedItem.reportingDetails.outcomes}
+</div>
                     </div>
-                    <div className="preview-item">
+                   <div
+  style={{
+    background: "white",
+    border: "1px solid #e2e8f0",
+    borderRadius: "8px",
+    padding: "0.75rem"
+  }}
+>
                       <span className="preview-label">Present Participants</span>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginTop: "0.25rem" }}>
                         {selectedItem.reportingDetails.participants && selectedItem.reportingDetails.participants.length > 0 ? (
@@ -1383,7 +1619,14 @@ const matchesCommunity =
                         )}
                       </div>
                     </div>
-                    <div className="preview-item">
+                    <div
+  style={{
+    background: "white",
+    border: "1px solid #e2e8f0",
+    borderRadius: "8px",
+    padding: "0.75rem"
+  }}
+>
                       <span className="preview-label">Next Steps / Follow-up</span>
                       <div className="preview-textarea-val">{selectedItem.reportingDetails.nextSteps}</div>
                     </div>
@@ -1655,25 +1898,68 @@ const matchesCommunity =
                 </div>
               </div>
             )}
-            <h3 style={{ borderBottom: "1.5px solid var(--border-color)", paddingBottom: "0.4rem", color: "var(--pa-navy)", fontSize: "1.15rem", marginBottom: "1rem" }}>
+            <h3
+  style={{
+    background: "#fff7ed",
+    borderLeft: "4px solid #f97316",
+    padding: "0.75rem 1rem",
+    borderRadius: "6px",
+    color: "var(--pa-navy)",
+    fontSize: "1.1rem",
+    marginBottom: "1rem"
+  }}
+>
                 Admin Review & Feedback
               </h3>
               <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label" style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "0.25rem", display: "block" }}>
-                    Submission Status
-                  </label>
-                  <select
-                    value={adminStatus}
-                    onChange={(e) => setAdminStatus(e.target.value as any)}
-                    className="form-select"
-                    style={{ padding: "0.6rem", fontSize: "0.9rem" }}
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="review">In Review</option>
-                    <option value="completed">Completed</option>
-                  </select>
-                </div>
+               <div
+  style={{
+    display: "flex",
+    alignItems: "flex-end",
+    gap: "1rem"
+  }}
+>
+  <div style={{ flex: 1 }}>
+    <label
+      className="form-label"
+      style={{
+        fontSize: "0.8rem",
+        color: "var(--text-muted)",
+        marginBottom: "0.25rem",
+        display: "block"
+      }}
+    >
+      Submission Status
+    </label>
+
+    <select
+      value={adminStatus}
+      onChange={(e) => setAdminStatus(e.target.value as any)}
+      className="form-select"
+      style={{
+        padding: "0.6rem",
+        fontSize: "0.9rem"
+      }}
+    >
+      <option value="pending">Pending</option>
+      <option value="review">In Review</option>
+      <option value="completed">Completed</option>
+    </select>
+  </div>
+
+  <button
+    onClick={handleSaveAdminChanges}
+    className="btn btn-primary"
+    style={{
+      padding: "0.75rem 1.5rem",
+      fontWeight: 700,
+      borderRadius: "8px",
+      whiteSpace: "nowrap"
+    }}
+  >
+    💾 Save Changes
+  </button>
+</div>
                 <div className="form-group" style={{ margin: 0 }}>
                   <label className="form-label" style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "0.25rem", display: "block" }}>
                     Feedback / Comments
@@ -1687,17 +1973,7 @@ const matchesCommunity =
                   />
                 </div>
               </div>
-              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1rem" }}>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={handleSaveAdminChanges}
-                  style={{ padding: "0.5rem 1.25rem", fontSize: "0.875rem" }}
-                  id="btn-detail-save-admin"
-                >
-                  💾 Save Admin Changes
-                </button>
-              </div>
+             
             </div>
 
           </div>
@@ -1861,27 +2137,34 @@ const matchesCommunity =
     borderRadius: "var(--border-radius-md)"
   }}
 >
+  <div
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "1rem"
+  }}
+>
   <h3
     style={{
-      marginBottom: "1rem",
+      margin: 0,
       color: "var(--pa-navy)",
       fontSize: "1rem"
     }}
   >
     📊 Submission Count by Country
-    <div
-  style={{
-    marginBottom: "0.75rem",
-    fontSize: "0.9rem",
-    fontWeight: 600,
-    color: "var(--pa-navy)"
-  }}
->
-  Total Countries: {Object.keys(countryStats).length}
-  {" • "}
-  Total Submissions: {submissions.length}
-</div>
   </h3>
+
+  <div
+    style={{
+      fontSize: "0.85rem",
+      fontWeight: 600,
+      color: "#4a5568"
+    }}
+  >
+    🌍 {Object.keys(countryStats).length} Countries • 📄 {submissions.length} Submissions
+  </div>
+</div>
 
  <div
   style={{
@@ -1975,7 +2258,39 @@ const matchesCommunity =
           </p>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }} id="submissions-list-container">
+     <>
+     {selectedItems.length > 0 && (
+  <div
+    style={{
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      background: "#f8fafc",
+      border: "1px solid #e2e8f0",
+      borderRadius: "8px",
+      padding: "0.75rem 1rem",
+      marginBottom: "1rem"
+    }}
+  >
+    <strong>
+      {selectedItems.length} selected
+    </strong>
+
+    <button
+  className="btn btn-secondary"
+  style={{
+    color: "var(--color-error)"
+  }}
+  onClick={handleDeleteSelected}
+>
+  🗑 Delete Selected
+</button>
+  </div>
+)}
+     
+
+       
+       <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }} id="submissions-list-container">
           {filteredSubmissions.map((item) => {
             const title =
               item.submissionType === "activity_event"
@@ -1995,6 +2310,31 @@ const matchesCommunity =
                 style={{ cursor: "pointer" }}
                 id={`submission-card-${item.id}`}
               >
+                <div
+  style={{
+    padding: "0.5rem 1rem 0 1rem"
+  }}
+  onClick={(e) => e.stopPropagation()}
+>
+  <input
+    type="checkbox"
+    checked={selectedItems.includes(item.id || "")}
+    onChange={(e) => {
+      if (e.target.checked) {
+        setSelectedItems([
+          ...selectedItems,
+          item.id || ""
+        ]);
+      } else {
+        setSelectedItems(
+          selectedItems.filter(
+            (id) => id !== item.id
+          )
+        );
+      }
+    }}
+  />
+</div>
                 <div className="history-card-header">
                   <div className="history-title-group">
                     <span
@@ -2116,8 +2456,9 @@ const matchesCommunity =
                 </div>
               </div>
             );
-          })}
+                   })}
         </div>
+      </>
       )}
     </div>
   );

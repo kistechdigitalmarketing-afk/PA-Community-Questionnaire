@@ -27,7 +27,45 @@ export default function SectionD({
       },
     });
   };
+ const handleAutoNumbering = (
+  value: string,
+  updateValue: (newValue: string) => void,
+  e: React.KeyboardEvent<HTMLTextAreaElement>
+) => {
+  if (e.key !== "Enter") return;
+  console.log("ENTER PRESSED");
 
+  e.preventDefault();
+
+  const lines = value.split("\n");
+
+  // First Enter ever
+  const hasNumbering = /^\d+\.\s/.test(lines[0]);
+
+  if (!hasNumbering) {
+    const numberedLines = lines.map((line, index) => {
+      if (!line.trim()) return `${index + 1}. `;
+      return `${index + 1}. ${line}`;
+    });
+
+    numberedLines.push(`${numberedLines.length + 1}. `);
+
+    updateValue(numberedLines.join("\n"));
+    return;
+  }
+
+  // Already numbered
+  const lastLine = lines[lines.length - 1];
+  const match = lastLine.match(/^(\d+)\.\s?/);
+
+  if (match) {
+    const nextNumber = Number(match[1]) + 1;
+
+    updateValue(
+      value + "\n" + nextNumber + ". "
+    );
+  }
+};
   return (
     <div id="section-d-container">
       <p
@@ -150,13 +188,26 @@ export default function SectionD({
                 <span className="required-dot">*</span>
               </label>
 
-              <textarea
-                id="planningAgenda"
-                name="planningAgenda"
-                value={formData.meetingDetails.planningAgenda}
-                onChange={handleTextChange}
-                className="form-textarea"
-              />
+             <textarea
+  id="planningAgenda"
+  name="planningAgenda"
+  value={formData.meetingDetails.planningAgenda}
+  onChange={handleTextChange}
+  onKeyDown={(e) =>
+    handleAutoNumbering(
+      formData.meetingDetails.planningAgenda,
+      (newValue) =>
+        onChange({
+          meetingDetails: {
+            ...formData.meetingDetails,
+            planningAgenda: newValue,
+          },
+        }),
+      e
+    )
+  }
+  className="form-textarea"
+/>
 
               {errors["meetingDetails.planningAgenda"] && (
                 <span className="form-error-msg">
@@ -199,13 +250,26 @@ export default function SectionD({
                 <span className="required-dot">*</span>
               </label>
 
-              <textarea
-                id="minutesAgenda"
-                name="minutesAgenda"
-                value={formData.meetingDetails.minutesAgenda}
-                onChange={handleTextChange}
-                className="form-textarea"
-              />
+             <textarea
+  id="minutesAgenda"
+  name="minutesAgenda"
+  value={formData.meetingDetails.minutesAgenda}
+  onChange={handleTextChange}
+  onKeyDown={(e) =>
+    handleAutoNumbering(
+      formData.meetingDetails.minutesAgenda,
+      (newValue) =>
+        onChange({
+          meetingDetails: {
+            ...formData.meetingDetails,
+            minutesAgenda: newValue,
+          },
+        }),
+      e
+    )
+  }
+  className="form-textarea"
+/>
 
               {errors["meetingDetails.minutesAgenda"] && (
                 <span className="form-error-msg">
@@ -239,13 +303,26 @@ export default function SectionD({
   (Describe key results or decisions made)
 </div>
 
-              <textarea
-                id="keyTakeaways"
-                name="keyTakeaways"
-                value={formData.meetingDetails.keyTakeaways}
-                onChange={handleTextChange}
-                className="form-textarea"
-              />
+             <textarea
+  id="keyTakeaways"
+  name="keyTakeaways"
+  value={formData.meetingDetails.keyTakeaways}
+  onChange={handleTextChange}
+  onKeyDown={(e) =>
+    handleAutoNumbering(
+      formData.meetingDetails.keyTakeaways,
+      (newValue) =>
+        onChange({
+          meetingDetails: {
+            ...formData.meetingDetails,
+            keyTakeaways: newValue,
+          },
+        }),
+      e
+    )
+  }
+  className="form-textarea"
+/>
 
               {errors["meetingDetails.keyTakeaways"] && (
                 <span className="form-error-msg">
@@ -275,13 +352,26 @@ export default function SectionD({
   (What are the immediate next steps or follow-up tasks required?)
 </div>
 
-              <textarea
-                id="followUpActions"
-                name="followUpActions"
-                value={formData.meetingDetails.followUpActions}
-                onChange={handleTextChange}
-                className="form-textarea"
-              />
+             <textarea
+  id="followUpActions"
+  name="followUpActions"
+  value={formData.meetingDetails.followUpActions}
+  onChange={handleTextChange}
+  onKeyDown={(e) =>
+    handleAutoNumbering(
+      formData.meetingDetails.followUpActions,
+      (newValue) =>
+        onChange({
+          meetingDetails: {
+            ...formData.meetingDetails,
+            followUpActions: newValue,
+          },
+        }),
+      e
+    )
+  }
+  className="form-textarea"
+/>
 
               {errors["meetingDetails.followUpActions"] && (
                 <span className="form-error-msg">
@@ -301,12 +391,25 @@ export default function SectionD({
               </label>
 
               <textarea
-                id="attendance"
-                name="attendance"
-                value={formData.meetingDetails.attendance}
-                onChange={handleTextChange}
-                className="form-textarea"
-              />
+  id="attendance"
+  name="attendance"
+  value={formData.meetingDetails.attendance}
+  onChange={handleTextChange}
+  onKeyDown={(e) =>
+    handleAutoNumbering(
+      formData.meetingDetails.attendance,
+      (newValue) =>
+        onChange({
+          meetingDetails: {
+            ...formData.meetingDetails,
+            attendance: newValue,
+          },
+        }),
+      e
+    )
+  }
+  className="form-textarea"
+/>
 
               {errors["meetingDetails.attendance"] && (
                 <span className="form-error-msg">

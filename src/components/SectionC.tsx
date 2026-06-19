@@ -470,6 +470,30 @@ export default function SectionC({ formData, onChange, errors }: SectionCProps) 
   };
 
   // Planning text details (whatWhyHow, expectedOutcomes)
+  const handleAutoNumbering = (
+  currentValue: string,
+  updateValue: (value: string) => void,
+  e: React.KeyboardEvent<HTMLTextAreaElement>
+) => {
+  if (e.key !== "Enter") return;
+
+  e.preventDefault();
+
+  const lines = currentValue
+    .split("\n")
+    .filter((line) => line.trim());
+
+  const numberedLines = lines.map((line, index) => {
+    const clean = line.replace(/^\d+\.\s*/, "");
+    return `${index + 1}. ${clean}`;
+  });
+
+  const nextNumber = numberedLines.length + 1;
+
+  updateValue(
+    [...numberedLines, `${nextNumber}. `].join("\n")
+  );
+};
   const handlePlanningTextChange = (
     field: "whatWhyHow" | "expectedOutcomes"
   ) => {
@@ -607,12 +631,25 @@ export default function SectionC({ formData, onChange, errors }: SectionCProps) 
                   (Give a detailed summary of the event or activities, the goal/reason, and the execution process...)
                 </span>
               </label>
-              <textarea
-                id="repWhatWhyHow"
-                value={formData.reportingDetails.whatWhyHow}
-                onChange={handleReportingTextChange("whatWhyHow")}
-                className="form-textarea"
-              />
+             <textarea
+  id="repWhatWhyHow"
+  value={formData.reportingDetails.whatWhyHow}
+  onChange={handleReportingTextChange("whatWhyHow")}
+  onKeyDown={(e) =>
+    handleAutoNumbering(
+      formData.reportingDetails.whatWhyHow,
+      (newValue) =>
+        onChange({
+          reportingDetails: {
+            ...formData.reportingDetails,
+            whatWhyHow: newValue,
+          },
+        }),
+      e
+    )
+  }
+  className="form-textarea"
+/>
               {errors["reportingDetails.whatWhyHow"] && (
                 <span className="form-error-msg">{errors["reportingDetails.whatWhyHow"]}</span>
               )}
@@ -626,12 +663,25 @@ export default function SectionC({ formData, onChange, errors }: SectionCProps) 
                   (Describe key results, attendance, decisions made, or direct benefits to the community...)
                 </span>
               </label>
-              <textarea
-                id="repOutcomes"
-                value={formData.reportingDetails.outcomes}
-                onChange={handleReportingTextChange("outcomes")}
-                className="form-textarea"
-              />
+             <textarea
+  id="repOutcomes"
+  value={formData.reportingDetails.outcomes}
+  onChange={handleReportingTextChange("outcomes")}
+  onKeyDown={(e) =>
+    handleAutoNumbering(
+      formData.reportingDetails.outcomes,
+      (newValue) =>
+        onChange({
+          reportingDetails: {
+            ...formData.reportingDetails,
+            outcomes: newValue,
+          },
+        }),
+      e
+    )
+  }
+  className="form-textarea"
+/>
               {errors["reportingDetails.outcomes"] && (
                 <span className="form-error-msg">{errors["reportingDetails.outcomes"]}</span>
               )}
@@ -722,11 +772,24 @@ export default function SectionC({ formData, onChange, errors }: SectionCProps) 
                 </span>
               </label>
               <textarea
-                id="repNextSteps"
-                value={formData.reportingDetails.nextSteps}
-                onChange={handleReportingTextChange("nextSteps")}
-                className="form-textarea"
-              />
+  id="repNextSteps"
+  value={formData.reportingDetails.nextSteps}
+  onChange={handleReportingTextChange("nextSteps")}
+  onKeyDown={(e) =>
+    handleAutoNumbering(
+      formData.reportingDetails.nextSteps,
+      (newValue) =>
+        onChange({
+          reportingDetails: {
+            ...formData.reportingDetails,
+            nextSteps: newValue,
+          },
+        }),
+      e
+    )
+  }
+  className="form-textarea"
+/>
               {errors["reportingDetails.nextSteps"] && (
                 <span className="form-error-msg">{errors["reportingDetails.nextSteps"]}</span>
               )}
@@ -880,6 +943,19 @@ export default function SectionC({ formData, onChange, errors }: SectionCProps) 
                 id="planWhatWhyHow"
                 value={formData.planningDetails.whatWhyHow}
                 onChange={handlePlanningTextChange("whatWhyHow")}
+               onKeyDown={(e) =>
+  handleAutoNumbering(
+    formData.planningDetails.whatWhyHow,
+    (newValue) =>
+      onChange({
+        planningDetails: {
+          ...formData.planningDetails,
+          whatWhyHow: newValue,
+        },
+      }),
+    e
+  )
+}
                 className="form-textarea"
               />
               {errors["planningDetails.whatWhyHow"] && (
@@ -899,6 +975,19 @@ export default function SectionC({ formData, onChange, errors }: SectionCProps) 
                 id="planExpectedOutcomes"
                 value={formData.planningDetails.expectedOutcomes}
                 onChange={handlePlanningTextChange("expectedOutcomes")}
+                onKeyDown={(e) =>
+  handleAutoNumbering(
+    formData.planningDetails.expectedOutcomes,
+    (newValue) =>
+      onChange({
+        planningDetails: {
+          ...formData.planningDetails,
+          expectedOutcomes: newValue,
+        },
+      }),
+    e
+  )
+}
                 className="form-textarea"
               />
               {errors["planningDetails.expectedOutcomes"] && (
@@ -968,12 +1057,34 @@ export default function SectionC({ formData, onChange, errors }: SectionCProps) 
                             {getPlanningLabelAndHelper(type).helper}
                           </span>
                         </label>
-                        <textarea
-                          id={`planResourceDesc-${type}`}
-                          value={formData.planningDetails.resourcesNeeded.descriptions?.[type] || ""}
-                          onChange={handlePlanningDescriptionChange(type)}
-                          className="form-textarea"
-                        />
+                       <textarea
+  id={`planResourceDesc-${type}`}
+  value={formData.planningDetails.resourcesNeeded.descriptions?.[type] || ""}
+  onChange={handlePlanningDescriptionChange(type)}
+  onKeyDown={(e) =>
+    handleAutoNumbering(
+      formData.planningDetails.resourcesNeeded.descriptions?.[type] || "",
+      (newValue) => {
+        const updatedDescriptions = {
+          ...(formData.planningDetails.resourcesNeeded.descriptions || {}),
+          [type]: newValue,
+        };
+
+        onChange({
+          planningDetails: {
+            ...formData.planningDetails,
+            resourcesNeeded: {
+              ...formData.planningDetails.resourcesNeeded,
+              descriptions: updatedDescriptions,
+            },
+          },
+        });
+      },
+      e
+    )
+  }
+  className="form-textarea"
+/>
                         {errors[errorKey] && (
                           <span className="form-error-msg">{errors[errorKey]}</span>
                         )}

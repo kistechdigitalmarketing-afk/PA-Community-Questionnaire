@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { FormData, PA_PROGRAMS } from "../data/formData";
 
 interface FormPreviewProps {
@@ -329,42 +329,106 @@ export default function FormPreview({ formData, isSubmitted = false }: FormPrevi
         </div>
       )}
 
-      {/* ATTACHED DOCUMENTS SUMMARY */}
-      {formData.documents && formData.documents.length > 0 && (
-        <div className="history-card" style={{ marginBottom: "2rem", borderColor: "var(--pa-blue)" }}>
-          <div className="preview-header" style={{ backgroundColor: "var(--pa-navy)" }}>
-            <h4 style={{ color: "white", fontSize: "1.1rem" }}>Attached Documents</h4>
-            <span className="preview-type-badge" style={{ backgroundColor: "var(--pa-blue)" }}>
-              Files ({formData.documents.length})
+     {/* ATTACHED DOCUMENTS SUMMARY */}
+{formData.documents && formData.documents.length > 0 && (
+  <div
+    className="history-card"
+    style={{
+      marginBottom: "2rem",
+      borderColor: "var(--pa-blue)",
+    }}
+  >
+    <div
+      className="preview-header"
+      style={{ backgroundColor: "var(--pa-navy)" }}
+    >
+      <h4
+        style={{
+          color: "white",
+          fontSize: "1.1rem",
+        }}
+      >
+        Attached Documents
+      </h4>
+
+      <span
+        className="preview-type-badge"
+        style={{
+          backgroundColor: "var(--pa-blue)",
+        }}
+      >
+        Files ({formData.documents.length})
+      </span>
+    </div>
+
+    <div className="preview-body">
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "0.75rem",
+        }}
+      >
+        {formData.documents.map((file, idx) => (
+          <div
+            key={idx}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "0.75rem",
+              backgroundColor: "var(--bg-main)",
+              borderRadius: "var(--border-radius-md)",
+              border: "1px solid var(--border-color)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.75rem",
+                flexWrap: "wrap",
+              }}
+            >
+              <span
+  style={{
+    fontWeight: 600,
+    fontSize: "0.95rem",
+    color: "var(--pa-blue)",
+  }}
+>
+  {file.name}
+</span>
+
+              <a
+                href={file.base64}
+                download={file.name}
+                className="btn btn-secondary"
+                style={{
+                  padding: "0.25rem 0.6rem",
+                  fontSize: "0.75rem",
+                  textDecoration: "none",
+                }}
+              >
+                ⬇ Download
+              </a>
+            </div>
+
+            <span
+              style={{
+                fontSize: "0.85rem",
+                color: "var(--text-muted)",
+                fontWeight: "bold",
+              }}
+            >
+              {Math.round(file.size / 1024)} KB
             </span>
           </div>
-          <div className="preview-body">
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-              {formData.documents.map((file, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "0.75rem",
-                    backgroundColor: "var(--bg-main)",
-                    borderRadius: "var(--border-radius-md)",
-                    border: "1px solid var(--border-color)",
-                  }}
-                >
-                  <span style={{ fontWeight: 600, fontSize: "0.95rem" }}>
-                    📄 {file.name}
-                  </span>
-                  <span style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: "bold" }}>
-                    {Math.round(file.size / 1024)} KB
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+        ))}
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }
