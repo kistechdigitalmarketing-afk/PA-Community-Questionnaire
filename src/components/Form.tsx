@@ -387,13 +387,23 @@ return true;
       }
     } else {
   try {
-    await fetch(
-      "https://script.googleusercontent.com/macros/echo?user_content_key=AUkAhnRExkkNCYtx40GfFxT7DULU6p9QtrIhFZxb0NIh-SpBkgJ6TYKqBtDRbOS9UABKuU2l21EUHcP9FEePhTLRyTYJqJQi6-L-FZW5xTNmxGhovHCQkS7MdRcGsl161JYN-bOlXBdw-X4x3WCbbkTPVjobgUL7wMwW8wVCnajzPESwsX-ZHpbC81bDUhgtPlfisxJNP1cr2Rcq3bF0cyzPoFCikbTIUSV--Km3PkIdA9YQ4yklt7oVTBLgvDSf7HFZFXGLgCVx07h7hggraMvVd7mYGDpBrA&lib=MoEq8rU7enSXylpmW7uN3uQLg06M-ugrx",
-      {
-        method: "POST",
-        body: JSON.stringify(finalData),
-      }
-    );
+   console.log("REACHING GOOGLE SCRIPT");
+
+const response = await fetch(
+  "https://script.google.com/macros/s/AKfycbwvsOW7DxWV3eQ0ALqJTqkpoU9s2J3bMEVKRmV1azI9QWLG2KUUzvlCbb4twRgRQEhccQ/exec",
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(finalData),
+  }
+);
+
+console.log("STATUS:", response.status);
+
+const text = await response.text();
+console.log("RESPONSE:", text);
 
     setSubmittedId(submissionId);
     setStep(5);
