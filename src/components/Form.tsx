@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import SectionA from "./SectionA";
 import SectionB from "./SectionB";
 import SectionC from "./SectionC";
@@ -21,6 +21,8 @@ export default function Form() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submittedId, setSubmittedId] = useState<string>("");
   const [stepError, setStepError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
@@ -360,8 +362,11 @@ return true;
       return;
     }
     if (!validateStep(3)) return;
+    if (isSubmittingRef.current) return;
 
-    // Generate unique ID and metadata
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
+
     const submissionId = "PAQ-" + Math.random().toString(36).substring(2, 9).toUpperCase();
     const finalData: FormData = {
       ...formData,
@@ -369,59 +374,60 @@ return true;
       timestamp: Date.now(),
     };
 
-    // Save to Firestore if configured, otherwise fallback to local storage
-    if (isFirebaseConfigured && db) {
-      try {
-        await addDoc(collection(db, "submissions"), {
-          ...finalData,
-          timestamp: Date.now() // Ensure fresh numeric timestamp for sort orders
-        });
-        setSubmittedId(submissionId);
-        setStep(5); // Success state
-      } catch (err) {
-        console.error("Failed to save submission to Firestore", err);
-        // Fallback to local storage in case of connection failure
-        saveLocally(finalData);
-        setSubmittedId(submissionId);
-        setStep(5);
+    try {
+      if (isFirebaseConfigured && db) {
+        try {
+          await addDoc(collection(db, "submissions"), {
+            ...finalData,
+            timestamp: Date.now(),
+          });
+          setSubmittedId(submissionId);
+          setStep(5);
+        } catch (err) {
+          console.error("Failed to save submission to Firestore", err);
+          saveLocally(finalData);
+          setSubmittedId(submissionId);
+          setStep(5);
+        }
+      } else {
+        try {
+          const response = await fetch(
+            "https://script.google.com/macros/s/AKfycbwvsOW7DxWV3eQ0ALqJTqkpoU9s2J3bMEVKRmV1azI9QWLG2KUUzvlCbb4twRgRQEhccQ/exec",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(finalData),
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error(`Submission failed with status ${response.status}`);
+          }
+
+          setSubmittedId(submissionId);
+          setStep(5);
+        } catch (err) {
+          console.error("Google Sheet save failed", err);
+          saveLocally(finalData);
+          setSubmittedId(submissionId);
+          setStep(5);
+        }
       }
-    } else {
-  try {
-   console.log("REACHING GOOGLE SCRIPT");
-
-const response = await fetch(
-  "https://script.google.com/macros/s/AKfycbwvsOW7DxWV3eQ0ALqJTqkpoU9s2J3bMEVKRmV1azI9QWLG2KUUzvlCbb4twRgRQEhccQ/exec",
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(finalData),
-  }
-);
-
-console.log("STATUS:", response.status);
-
-const text = await response.text();
-console.log("RESPONSE:", text);
-
-    setSubmittedId(submissionId);
-    setStep(5);
-  } catch (err) {
-    console.error("Google Sheet save failed", err);
-
-    saveLocally(finalData);
-    setSubmittedId(submissionId);
-    setStep(5);
-  }
-}
+    } finally {
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
+    }
   };
 
   const handleReset = () => {
-  setFormData(INITIAL_FORM_STATE);
-  setErrors({});
-  setStep(0);
-};
+    isSubmittingRef.current = false;
+    setIsSubmitting(false);
+    setFormData(INITIAL_FORM_STATE);
+    setErrors({});
+    setStep(0);
+  };
 
 const handleAutoNumbering = (
   value: string,
@@ -678,6 +684,7 @@ const renderStepper = () => {
       type="button"
       className="btn btn-secondary"
       onClick={() => setStep(0)}
+      disabled={isSubmitting}
     >
       🏠 Home
     </button>
@@ -690,6 +697,7 @@ const renderStepper = () => {
       className="btn btn-secondary"
       onClick={handleBack}
       id="btn-nav-back"
+      disabled={isSubmitting}
     >
       ← Back
     </button>
@@ -799,14 +807,29 @@ const renderStepper = () => {
                     Next →
                   </button>
                 ) : (
-                  <button
-                    key="btn-submit"
-                    type="submit"
-                    className="btn btn-success"
-                    id="btn-nav-submit"
-                  >
-                    Submit
-                  </button>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.35rem" }}>
+                    {isSubmitting && (
+                      <span
+                        style={{
+                          fontSize: "0.8rem",
+                          color: "var(--text-muted)",
+                          fontWeight: 600,
+                        }}
+                      >
+                        Saving your submission — please wait and do not click again.
+                      </span>
+                    )}
+                    <button
+                      key="btn-submit"
+                      type="submit"
+                      className="btn btn-success"
+                      id="btn-nav-submit"
+                      disabled={isSubmitting}
+                      aria-busy={isSubmitting}
+                    >
+                      {isSubmitting ? "Submitting…" : "Submit"}
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
